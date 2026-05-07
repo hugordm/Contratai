@@ -34,6 +34,8 @@ export default function ColaboradoresClient({ initialColaboradores }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ColaboradorItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [form, setForm] = useState({
     nome: "",
@@ -122,6 +124,20 @@ export default function ColaboradoresClient({ initialColaboradores }: Props) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/colaboradores/${deleteTarget.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setColaboradores((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+        setDeleteTarget(null);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleCopiarLink = async (colaborador: ColaboradorItem) => {
     if (!colaborador.testLinkToken) return;
     const url = `${window.location.origin}/test/${colaborador.testLinkToken}`;
@@ -132,6 +148,34 @@ export default function ColaboradoresClient({ initialColaboradores }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Delete modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-2xl">
+            <h2 className="text-lg font-bold text-[#4A5452] mb-2">Excluir colaborador</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Tem certeza que deseja excluir <strong>{deleteTarget.nome}</strong>? O histórico de testes e resultados será removido permanentemente.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-600 transition disabled:opacity-50"
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6 md:mb-8 gap-4">
         <div>
@@ -320,6 +364,12 @@ export default function ColaboradoresClient({ initialColaboradores }: Props) {
                         : "Gerar link"}
                     </button>
                   )}
+                  <button
+                    onClick={() => setDeleteTarget(c)}
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-red-400 text-xs font-semibold hover:border-red-400 hover:text-red-600 transition"
+                  >
+                    Excluir
+                  </button>
                 </div>
               </div>
             </div>
