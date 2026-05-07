@@ -37,7 +37,7 @@ export default async function MatchPage({ params }: Props) {
     },
     select: { id: true },
   });
-  const discCompletedIds = new Set(candidatesWithDisc.map((c) => c.id));
+  const discCompletedIds = new Set(candidatesWithDisc.map((c: any) => c.id));
 
   const reports = await prisma.matchReport.findMany({
     where: { jobId, job: { companyId: user.companyId } },
@@ -45,7 +45,7 @@ export default async function MatchPage({ params }: Props) {
     include: { candidate: { select: { nome: true, email: true } } },
   });
 
-  const initialReports = reports.map((r) => ({
+  const initialReports = reports.map((r: any) => ({
     id: r.id,
     candidateId: r.candidateId,
     candidateNome: r.candidate.nome,

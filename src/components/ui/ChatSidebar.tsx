@@ -68,7 +68,7 @@ export default function ChatSidebar({ jobId }: Props) {
 
       if (!res.ok || !res.body) {
         setMessages((prev) =>
-          prev.map((m) =>
+          prev.map((m: any) =>
             m.id === assistantId ? { ...m, content: "Erro ao obter resposta." } : m
           )
         );
@@ -85,7 +85,7 @@ export default function ChatSidebar({ jobId }: Props) {
         const chunk = decoder.decode(value, { stream: true });
         accumulated += chunk;
         setMessages((prev) =>
-          prev.map((m) =>
+          prev.map((m: any) =>
             m.id === assistantId ? { ...m, content: accumulated } : m
           )
         );
@@ -162,7 +162,7 @@ export default function ChatSidebar({ jobId }: Props) {
               </div>
             )}
 
-            {messages.map((msg) => (
+            {messages.map((msg: any) => (
               <div
                 key={msg.id}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}

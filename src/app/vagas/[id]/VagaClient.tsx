@@ -204,7 +204,7 @@ export default function VagaClient({
     try {
       const res = await fetch(`/api/vagas/${jobId}/candidatos/${deleteCandidate.id}`, { method: "DELETE" });
       if (res.ok) {
-        setCandidates((prev) => prev.filter((c) => c.id !== deleteCandidate.id));
+        setCandidates((prev) => prev.filter((c: any) => c.id !== deleteCandidate.id));
         setDeleteCandidate(null);
       }
     } finally {
@@ -213,7 +213,7 @@ export default function VagaClient({
   };
 
   const showIASection = criouComIA || !!jdData;
-  const discCompletedCount = candidates.filter((c) => c.testStatus === "completed").length;
+  const discCompletedCount = candidates.filter((c: any) => c.testStatus === "completed").length;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -432,7 +432,7 @@ export default function VagaClient({
               <div>
                 <SectionTitle>Perguntas de triagem</SectionTitle>
                 <ol className="space-y-3">
-                  {jdData.perguntas.map((p, i) => (
+                  {jdData.perguntas.map((p: any, i: number) => (
                     <li key={i} className="flex gap-3 text-sm text-gray-700 leading-relaxed">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4A5452] text-white text-xs flex items-center justify-center font-bold mt-0.5">
                         {i + 1}
@@ -446,7 +446,7 @@ export default function VagaClient({
               <div>
                 <SectionTitle>Perfil DISC ideal</SectionTitle>
                 <div className="flex flex-wrap gap-3 mb-4">
-                  {jdData.perfilIdeal.disc.map((d) => {
+                  {jdData.perfilIdeal.disc.map((d: any) => {
                     const info = DISC_INFO[d];
                     return info ? (
                       <div
@@ -585,7 +585,7 @@ export default function VagaClient({
           </div>
         ) : (
           <div className="space-y-3">
-            {candidates.map((candidate) => (
+            {candidates.map((candidate: any) => (
               <div
                 key={candidate.id}
                 className="flex items-center justify-between gap-3 p-4 bg-[#F5F7F0] rounded-xl"

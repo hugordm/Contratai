@@ -36,7 +36,7 @@ export default async function VagaPage({ params, searchParams }: Props) {
     },
   });
 
-  const initialCandidates = dbCandidates.map((c) => {
+  const initialCandidates = dbCandidates.map((c: any) => {
     const latestLink = c.testLinks[0] ?? null;
     let testStatus: "none" | "pending" | "completed" = "none";
     if (latestLink) {

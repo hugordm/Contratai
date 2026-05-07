@@ -105,9 +105,9 @@ export default async function ResultPage({ params }: Props) {
           <div className="p-6 border-b border-gray-100">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Distribuição DISC</h3>
             <div className="space-y-3">
-              {order.map((type) => {
-                const pct = disc.percentages[type] ?? 0;
-                const typeInfo = DISC_INFO[type];
+              {order.map((type: any) => {
+                const pct = disc.percentages[type as string] ?? 0;
+                const typeInfo = DISC_INFO[type as keyof typeof DISC_INFO];
                 return (
                   <div key={type}>
                     <div className="flex items-center justify-between mb-1">
@@ -128,7 +128,7 @@ export default async function ResultPage({ params }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pontos fortes</h4>
-                <ul className="space-y-1">{discInfo.strengths.map((s) => (<li key={s} className="text-sm text-gray-700 flex items-center gap-1.5"><span className="text-green-500">✓</span> {s}</li>))}</ul>
+                <ul className="space-y-1">{discInfo.strengths.map((s: any) => (<li key={s} className="text-sm text-gray-700 flex items-center gap-1.5"><span className="text-green-500">✓</span> {s}</li>))}</ul>
               </div>
               <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Atenção</h4>
@@ -178,7 +178,7 @@ export default async function ResultPage({ params }: Props) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pontos fortes</h4>
-                  <ul className="space-y-1">{ennInfo.strengths.map((s) => (<li key={s} className="text-sm text-gray-700 flex items-center gap-1.5"><span className="text-green-500">✓</span> {s}</li>))}</ul>
+                  <ul className="space-y-1">{ennInfo.strengths.map((s: any) => (<li key={s} className="text-sm text-gray-700 flex items-center gap-1.5"><span className="text-green-500">✓</span> {s}</li>))}</ul>
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Atenção</h4>
@@ -248,7 +248,7 @@ export default async function ResultPage({ params }: Props) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pontos fortes</h4>
-                  <ul className="space-y-1">{mbtiInfo.strengths.map((s) => (<li key={s} className="text-sm text-gray-700 flex items-center gap-1.5"><span className="text-green-500">✓</span> {s}</li>))}</ul>
+                  <ul className="space-y-1">{mbtiInfo.strengths.map((s: any) => (<li key={s} className="text-sm text-gray-700 flex items-center gap-1.5"><span className="text-green-500">✓</span> {s}</li>))}</ul>
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Atenção</h4>

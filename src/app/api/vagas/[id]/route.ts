@@ -31,7 +31,7 @@ export async function DELETE(
     where: { jobId },
     select: { id: true },
   });
-  const candidateIds = candidates.map((c) => c.id);
+  const candidateIds = candidates.map((c: any) => c.id);
 
   if (candidateIds.length > 0) {
     await prisma.testLink.deleteMany({ where: { candidateId: { in: candidateIds } } });

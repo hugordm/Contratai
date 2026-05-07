@@ -106,9 +106,9 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {jobs.map((job) => {
+                {jobs.map((job: any) => {
                   const total = job._count.candidates;
-                  const done = job.candidates.filter((c) => c.testCompletedAt).length;
+                  const done = job.candidates.filter((c: any) => c.testCompletedAt).length;
                   const pending = total - done;
                   const lastMatch = job.matchReports[0]?.createdAt ?? null;
                   const noCandidates = total === 0;

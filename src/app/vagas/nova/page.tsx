@@ -97,7 +97,7 @@ export default function NovaVagaPage() {
                   style={{ minHeight: "52px" }}
                 >
                   <option value="">Selecione o motivo</option>
-                  {MOTIVOS.map((m) => (
+                  {MOTIVOS.map((m: any) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
                     </option>

@@ -10,7 +10,7 @@ export interface EnneagramResult {
 export function calculateEnneagram(answers: Record<number, number>): EnneagramResult {
   const scores: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
 
-  enneagramQuestions.forEach((q) => {
+  enneagramQuestions.forEach((q: any) => {
     const score = answers[q.id] ?? 0;
     scores[q.tipo] += score;
   });

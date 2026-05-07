@@ -167,7 +167,7 @@ export function ResultadoPDF({ candidateName, companyName, disc, enneagram, mbti
           </View>
 
           <View style={{ marginBottom: 8 }}>
-            {["D", "I", "S", "C"].map((t) => (
+            {["D", "I", "S", "C"].map((t: any) => (
               <Bar key={t} label={`${t} — ${DISC_LABELS[t]?.label ?? t}`} pct={disc.percentages[t] ?? 0} color={t === disc.dominant ? C.lime : C.lightGray} />
             ))}
           </View>
@@ -193,7 +193,7 @@ export function ResultadoPDF({ candidateName, companyName, disc, enneagram, mbti
             </View>
 
             <View>
-              {([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map((t) => {
+              {([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map((t: any) => {
                 const score = enneagram.scores[String(t)] ?? 0;
                 const pct = Math.round((score / 20) * 100);
                 return (

@@ -65,7 +65,7 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
             Perfil da empresa *
           </label>
           <div className="grid grid-cols-2 gap-3">
-            {perfis.map((p) => (
+            {perfis.map((p: any) => (
               <button
                 key={p.id}
                 onClick={() => onUpdate({ perfilRitmo: p.id })}
@@ -123,7 +123,7 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
             Estilo de liderança predominante
           </label>
           <div className="grid grid-cols-2 gap-3">
-            {estilosLideranca.map((e) => (
+            {estilosLideranca.map((e: any) => (
               <button
                 key={e.id}
                 onClick={() => onUpdate({ estiloLideranca: e.id })}

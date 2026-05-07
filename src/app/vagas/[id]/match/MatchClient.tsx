@@ -111,7 +111,7 @@ export default function MatchClient({
       if (!res.ok) return;
       const { desafio } = await res.json();
       setReports((prev) =>
-        prev.map((r) =>
+        prev.map((r: any) =>
           r.id === report.id
             ? { ...r, relatorio: r.relatorio ? { ...r.relatorio, desafioTecnico: desafio } : r.relatorio }
             : r
@@ -182,7 +182,7 @@ export default function MatchClient({
 
       {!running && hasReports && (
         <div className="space-y-4">
-          {reports.map((report) => {
+          {reports.map((report: any) => {
             const rel = report.relatorio;
             const score = report.matchScore ?? 0;
             const colors = scoreColor(score);
@@ -229,7 +229,7 @@ export default function MatchClient({
                       <div>
                         <SectionTitle>Pontos fortes</SectionTitle>
                         <ul className="space-y-2">
-                          {rel.pontosFortres?.map((p, i) => (
+                          {rel.pontosFortres?.map((p: any, i: number) => (
                             <li key={i} className="flex gap-2 text-sm">
                               <span className="text-[#C4FF57] font-bold flex-shrink-0">✓</span>
                               <span className="text-gray-700">{p}</span>
@@ -240,7 +240,7 @@ export default function MatchClient({
                       <div>
                         <SectionTitle>Pontos de atenção</SectionTitle>
                         <ul className="space-y-2">
-                          {rel.pontosAtencao?.map((p, i) => (
+                          {rel.pontosAtencao?.map((p: any, i: number) => (
                             <li key={i} className="flex gap-2 text-sm">
                               <span className="text-amber-500 font-bold flex-shrink-0">⚠</span>
                               <span className="text-gray-700">{p}</span>
@@ -269,7 +269,7 @@ export default function MatchClient({
                     <div>
                       <SectionTitle>Perguntas para entrevista</SectionTitle>
                       <ol className="space-y-2">
-                        {rel.perguntasComplementares?.map((q, i) => (
+                        {rel.perguntasComplementares?.map((q: any, i: number) => (
                           <li key={i} className="flex gap-3 text-sm text-gray-700">
                             <span className="w-6 h-6 rounded-full bg-[#4A5452] text-white text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
                               {i + 1}
@@ -293,7 +293,7 @@ export default function MatchClient({
                           <div>
                             <p className="text-xs font-semibold text-[#4A5452] uppercase tracking-wide mb-2">Tarefas</p>
                             <ul className="space-y-1">
-                              {rel.desafioTecnico.tarefas?.map((t, i) => (
+                              {rel.desafioTecnico.tarefas?.map((t: any, i: number) => (
                                 <li key={i} className="text-sm text-gray-700 flex gap-2">
                                   <span className="text-[#4A5452] font-bold">·</span>{t}
                                 </li>
@@ -303,7 +303,7 @@ export default function MatchClient({
                           <div>
                             <p className="text-xs font-semibold text-[#4A5452] uppercase tracking-wide mb-2">Entregáveis</p>
                             <ul className="space-y-1">
-                              {rel.desafioTecnico.entregaveis?.map((e, i) => (
+                              {rel.desafioTecnico.entregaveis?.map((e: any, i: number) => (
                                 <li key={i} className="text-sm text-gray-700 flex gap-2">
                                   <span className="text-[#4A5452] font-bold">·</span>{e}
                                 </li>
@@ -314,7 +314,7 @@ export default function MatchClient({
                         <div className="mt-4">
                           <p className="text-xs font-semibold text-[#4A5452] uppercase tracking-wide mb-2">Critérios de avaliação</p>
                           <ul className="space-y-1">
-                            {rel.desafioTecnico.criteriosAvaliacao?.map((c, i) => (
+                            {rel.desafioTecnico.criteriosAvaliacao?.map((c: any, i: number) => (
                               <li key={i} className="text-sm text-gray-700 flex gap-2">
                                 <span className="text-green-600 font-bold">✓</span>{c}
                               </li>

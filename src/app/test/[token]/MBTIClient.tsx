@@ -152,7 +152,7 @@ export default function MBTIClient({ token }: Props) {
 
         {/* Dot navigator */}
         <div className="flex flex-wrap gap-1.5 mt-6 justify-center">
-          {mbtiQuestions.map((q, idx) => (
+          {mbtiQuestions.map((q: any, idx: number) => (
             <button
               key={q.id}
               onClick={() => setCurrent(idx)}

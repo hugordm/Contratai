@@ -74,7 +74,7 @@ export default function OnboardingPage() {
         {/* Progress bar */}
         <div className="mb-8">
           <div className="flex items-center gap-0 mb-3">
-            {STEP_LABELS.map((label, i) => {
+            {STEP_LABELS.map((label: any, i: number) => {
               const s = i + 1;
               const done = step > s;
               const active = step === s;

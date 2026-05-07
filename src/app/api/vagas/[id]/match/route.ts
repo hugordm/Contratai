@@ -121,7 +121,7 @@ export async function POST(
     },
   });
 
-  const withDisc = candidates.filter((c) => c.personalityResults.length > 0);
+  const withDisc = candidates.filter((c: any) => c.personalityResults.length > 0);
 
   if (withDisc.length === 0) {
     return NextResponse.json(
@@ -150,7 +150,7 @@ VAGA:
   let results: any[];
   try {
     results = await Promise.all(
-      withDisc.map((c) =>
+      withDisc.map((c: any) =>
         analyzeCandidate(
           c.id,
           c.nome,
@@ -182,7 +182,7 @@ VAGA:
   });
 
   const saved = await Promise.all(
-    sorted.map((r) =>
+    sorted.map((r: any) =>
       prisma.matchReport.upsert({
         where: {
           jobId_candidateId: { jobId, candidateId: r.candidateId },
@@ -204,7 +204,7 @@ VAGA:
   );
 
   return NextResponse.json(
-    saved.map((s) => ({
+    saved.map((s: any) => ({
       id: s.id,
       candidateId: s.candidateId,
       rankingPosition: s.rankingPosition,
@@ -234,7 +234,7 @@ export async function GET(
   });
 
   return NextResponse.json(
-    reports.map((r) => ({
+    reports.map((r: any) => ({
       id: r.id,
       candidateId: r.candidateId,
       candidateNome: r.candidate.nome,

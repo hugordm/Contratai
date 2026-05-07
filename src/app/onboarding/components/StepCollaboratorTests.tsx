@@ -30,7 +30,7 @@ export default function StepCollaboratorTests({
   // Generate tokens once on mount / when collaborators change
   useEffect(() => {
     if (colaboradoresComToken.length === colaboradores.length) return;
-    const withTokens: ColaboradorComToken[] = colaboradores.map((c) => ({
+    const withTokens: ColaboradorComToken[] = colaboradores.map((c: any) => ({
       ...c,
       token: crypto.randomUUID(),
       resultados: "",
@@ -47,7 +47,7 @@ export default function StepCollaboratorTests({
   const updateResultados = (id: string, value: string) => {
     onUpdate(
       testOption as "ja_tenho" | "nao_tenho",
-      colaboradoresComToken.map((c) => (c.id === id ? { ...c, resultados: value } : c))
+      colaboradoresComToken.map((c: any) => (c.id === id ? { ...c, resultados: value } : c))
     );
   };
 
@@ -92,7 +92,7 @@ export default function StepCollaboratorTests({
         {[
           { id: "nao_tenho", label: "Ainda não tenho", desc: "Enviar link de avaliação para cada colaborador", emoji: "🔗" },
           { id: "ja_tenho", label: "Já tenho os resultados", desc: "Inserir os resultados manualmente por colaborador", emoji: "📋" },
-        ].map((opt) => (
+        ].map((opt: any) => (
           <button
             key={opt.id}
             onClick={() => handleOptionChange(opt.id as "ja_tenho" | "nao_tenho")}
@@ -115,7 +115,7 @@ export default function StepCollaboratorTests({
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Links de avaliação — {colaboradoresComToken.length} colaborador{colaboradoresComToken.length !== 1 ? "es" : ""}
           </p>
-          {colaboradoresComToken.map((c) => {
+          {colaboradoresComToken.map((c: any) => {
             const url = `${baseUrl}/test/${c.token}`;
             const isCopied = copied === c.token;
             return (
@@ -150,7 +150,7 @@ export default function StepCollaboratorTests({
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Resultados existentes
           </p>
-          {colaboradoresComToken.map((c) => (
+          {colaboradoresComToken.map((c: any) => (
             <div key={c.id} className="border border-gray-200 rounded-xl p-4">
               <p className="text-sm font-semibold text-[#4A5452] mb-1">
                 {c.nome} <span className="font-normal text-gray-400">— {c.cargo}</span>

@@ -30,12 +30,12 @@ export default function StepOrgChart({ colaboradores, onUpdate, onNext, onBack, 
   const remove = (id: string) => onUpdate(colaboradores.filter((c) => c.id !== id));
 
   const update = (id: string, field: keyof Colaborador, value: string) =>
-    onUpdate(colaboradores.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+    onUpdate(colaboradores.map((c: any) => (c.id === id ? { ...c, [field]: value } : c)));
 
   const validate = () => {
     if (colaboradores.length === 0) return true; // empty is OK (user can skip)
     const e: Record<string, string> = {};
-    colaboradores.forEach((c) => {
+    colaboradores.forEach((c: any) => {
       if (!c.nome.trim()) e[`${c.id}-nome`] = "Nome obrigatório";
       if (!c.cargo.trim()) e[`${c.id}-cargo`] = "Cargo obrigatório";
     });
@@ -67,7 +67,7 @@ export default function StepOrgChart({ colaboradores, onUpdate, onNext, onBack, 
           </div>
         )}
 
-        {colaboradores.map((c, idx) => (
+        {colaboradores.map((c: any, idx: number) => (
           <div key={c.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">

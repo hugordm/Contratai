@@ -5,10 +5,10 @@ type DiscType = "D" | "I" | "S" | "C";
 
 function calculateDISC(answers: Record<number, DiscType>) {
   const counts: Record<DiscType, number> = { D: 0, I: 0, S: 0, C: 0 };
-  Object.values(answers).forEach((type) => {
-    counts[type]++;
+  Object.values(answers).forEach((type: any) => {
+    counts[type as DiscType]++;
   });
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const total = Object.values(counts).reduce((a: any, b: any) => a + b, 0);
   const percentages = {
     D: Math.round((counts.D / total) * 100),
     I: Math.round((counts.I / total) * 100),

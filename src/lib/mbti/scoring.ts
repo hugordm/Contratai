@@ -28,10 +28,10 @@ const MIDPOINT = 45; // 15 questions × 3 (neutral)
 export function calculateMBTI(answers: Record<number, number>): MBTIResult {
   const sums = { EI: 0, SN: 0, TF: 0, JP: 0 };
 
-  mbtiQuestions.forEach((q) => {
+  mbtiQuestions.forEach((q: any) => {
     const raw = answers[q.id] ?? 3;
     const normalized = q.direcao === "positivo" ? raw : 6 - raw;
-    sums[q.dimensao] += normalized;
+    sums[q.dimensao as keyof typeof sums] += normalized;
   });
 
   // Letter resolution: above midpoint = first letter (E/S/T/J)

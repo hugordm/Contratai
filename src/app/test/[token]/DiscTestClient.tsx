@@ -171,7 +171,7 @@ export default function DiscTestClient({ token, candidateName, companyName }: Pr
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            {question.options.map((opt) => {
+            {question.options.map((opt: any) => {
               const selected = answers[question.id] === opt.type;
               return (
                 <button
@@ -222,7 +222,7 @@ export default function DiscTestClient({ token, candidateName, companyName }: Pr
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-6 justify-center">
-          {discQuestions.map((q, idx) => (
+          {discQuestions.map((q: any, idx: number) => (
             <button
               key={q.id}
               onClick={() => setCurrent(idx)}

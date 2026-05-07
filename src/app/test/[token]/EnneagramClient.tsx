@@ -158,7 +158,7 @@ export default function EnneagramClient({ token }: Props) {
 
         {/* Dot navigator */}
         <div className="flex flex-wrap gap-1.5 mt-6 justify-center">
-          {enneagramQuestions.map((q, idx) => (
+          {enneagramQuestions.map((q: any, idx: number) => (
             <button
               key={q.id}
               onClick={() => setCurrent(idx)}

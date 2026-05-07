@@ -115,7 +115,7 @@ export default async function TestPage({ params }: Props) {
 
           {/* Step indicator */}
           <div className="flex items-center gap-1 mt-2">
-            {STEPS.map((s, i) => {
+            {STEPS.map((s: any, i: number) => {
               const done = s.num < step;
               const active = s.num === step;
               return (

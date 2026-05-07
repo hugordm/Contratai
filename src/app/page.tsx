@@ -102,7 +102,7 @@ export default function Home() {
             Tudo que você precisa para contratar melhor
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {features.map((f) => (
+            {features.map((f: any) => (
               <div
                 key={f.title}
                 className="rounded-2xl border border-gray-200 p-6 hover:border-[#4A5452] transition"
