@@ -60,7 +60,7 @@ export default function EditarVagaPage({ params }: Props) {
           motivo: vaga.motivo ?? "",
           responsabilidades: vaga.responsabilidades ?? "",
           metas: vaga.metas ?? "",
-          liderId: existingLideres[0] ?? "",
+          liderId: vaga.liderId ?? existingLideres[0] ?? "",
         });
         setNodes(withPersonality);
       } finally {
@@ -86,7 +86,7 @@ export default function EditarVagaPage({ params }: Props) {
           motivo: form.motivo,
           responsabilidades: form.responsabilidades,
           metas: form.metas,
-          lideresJson: form.liderId ? [form.liderId] : [],
+          liderId: form.liderId || null,
         }),
       });
       if (!res.ok) {

@@ -57,7 +57,7 @@ export default function NovaVagaPage() {
           motivo: form.motivo,
           responsabilidades: form.responsabilidades,
           metas: form.metas,
-          lideresJson: form.liderId ? [form.liderId] : [],
+          liderId: form.liderId || null,
         }),
       });
       if (!res.ok) {

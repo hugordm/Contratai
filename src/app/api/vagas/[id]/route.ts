@@ -49,7 +49,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { titulo, motivo, responsabilidades, metas, lideresJson } = body;
+  const { titulo, motivo, responsabilidades, metas, liderId } = body;
 
   const updated = await prisma.job.update({
     where: { id: jobId },
@@ -58,7 +58,8 @@ export async function PATCH(
       ...(motivo !== undefined && { motivo }),
       ...(responsabilidades !== undefined && { responsabilidades }),
       ...(metas !== undefined && { metas }),
-      ...(lideresJson !== undefined && { lideresJson }),
+      ...(liderId !== undefined && { liderId: liderId || null }),
+      ...(liderId !== undefined && { lideresJson: liderId ? [liderId] : [] }),
     },
   });
 

@@ -13,6 +13,9 @@ interface MatchRelatorio {
   comoDelegarTarefas: string;
   comoDarFeedback: string;
   fitCultura: string;
+  compatibilidadeLider?: string;
+  pontosFortesDupla?: string[];
+  riscosRelacionamento?: string[];
   perguntasComplementares: string[];
   desafioTecnico?: DesafioTecnico;
 }
@@ -44,6 +47,8 @@ interface Props {
   totalCandidates: number;
   discCompletedCount: number;
   initialReports: ReportItem[];
+  liderNome: string | null;
+  hasLider: boolean;
 }
 
 function scoreColor(score: number) {
@@ -73,8 +78,11 @@ export default function MatchClient({
   totalCandidates,
   discCompletedCount,
   initialReports,
+  liderNome: initialLiderNome,
+  hasLider,
 }: Props) {
   const [reports, setReports] = useState<ReportItem[]>(initialReports);
+  const [liderNome, setLiderNome] = useState<string | null>(initialLiderNome);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -90,9 +98,12 @@ export default function MatchClient({
         setError(data.error ?? "Erro ao executar match. Tente novamente.");
         return;
       }
-      const data: ReportItem[] = await res.json();
-      setReports(data);
-      if (data.length > 0) setExpandedId(data[0].id);
+      const data = await res.json();
+      // Support both new format { liderNome, reports } and legacy array format
+      const reportsList: ReportItem[] = Array.isArray(data) ? data : (data.reports ?? []);
+      if (data.liderNome) setLiderNome(data.liderNome);
+      setReports(reportsList);
+      if (reportsList.length > 0) setExpandedId(reportsList[0].id);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
@@ -254,6 +265,61 @@ export default function MatchClient({
                       <SectionTitle>Fit cultural</SectionTitle>
                       <p className="text-sm text-gray-700 leading-relaxed">{rel.fitCultura}</p>
                     </div>
+
+                    {/* Compatibilidade com o líder */}
+                    {hasLider ? (
+                      rel.compatibilidadeLider && !rel.compatibilidadeLider.startsWith("Não aplicável") ? (
+                        <div className="border border-[#C4FF57] bg-[#f7ffe8] rounded-xl p-5">
+                          <SectionTitle>
+                            Compatibilidade com o líder{liderNome ? ` — ${liderNome}` : ""}
+                          </SectionTitle>
+                          <p className="text-sm text-gray-700 leading-relaxed mb-4">{rel.compatibilidadeLider}</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {rel.pontosFortesDupla && rel.pontosFortesDupla.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">Pontos fortes da dupla</p>
+                                <ul className="space-y-1.5">
+                                  {rel.pontosFortesDupla.map((p: string, i: number) => (
+                                    <li key={i} className="flex gap-2 text-sm">
+                                      <span className="text-green-600 font-bold flex-shrink-0">✓</span>
+                                      <span className="text-gray-700">{p}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {rel.riscosRelacionamento && rel.riscosRelacionamento.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Riscos de relacionamento</p>
+                                <ul className="space-y-1.5">
+                                  {rel.riscosRelacionamento.map((r: string, i: number) => (
+                                    <li key={i} className="flex gap-2 text-sm">
+                                      <span className="text-amber-500 font-bold flex-shrink-0">⚠</span>
+                                      <span className="text-gray-700">{r}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                          <p className="text-sm text-amber-700">
+                            <span className="font-semibold">Compatibilidade com o líder:</span> dados do líder ainda não disponíveis. Execute o match novamente após o líder completar o teste.
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <div className="bg-[#F5F7F0] border border-gray-200 rounded-xl p-4">
+                        <p className="text-sm text-gray-500">
+                          Selecione um líder na vaga para ver a compatibilidade com o candidato.{" "}
+                          <a href={`/vagas/${jobId}/editar`} className="text-[#4A5452] font-semibold underline">
+                            Editar vaga →
+                          </a>
+                        </p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-[#F5F7F0] rounded-xl p-4">

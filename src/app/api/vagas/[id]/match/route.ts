@@ -29,7 +29,8 @@ async function analyzeCandidate(
   enneagramJson: any,
   mbtiJson: any,
   jobContext: string,
-  leadersContext: string
+  leadersContext: string,
+  hasLeader: boolean
 ): Promise<any> {
   const disc = discJson as any;
   const percentages = disc?.percentages ?? {};
@@ -46,6 +47,14 @@ async function analyzeCandidate(
   const mbtiLine = mbti?.type
     ? `- 16 Personalidades (MBTI): ${mbti.type}`
     : "- 16 Personalidades: não realizado";
+
+  const leaderFields = hasLeader
+    ? `  "compatibilidadeLider": "<análise de 2-3 frases sobre como candidato e líder vão interagir considerando todos os perfis>",
+  "pontosFortesDupla": ["<complementaridade 1>", "<complementaridade 2>", "<complementaridade 3>"],
+  "riscosRelacionamento": ["<risco ou conflito potencial 1>", "<risco ou conflito potencial 2>"],`
+    : `  "compatibilidadeLider": "Não aplicável — vaga sem líder direto cadastrado",
+  "pontosFortesDupla": [],
+  "riscosRelacionamento": [],`;
 
   const candidateContext = `CANDIDATO:
 - Nome: ${candidateName}
@@ -67,7 +76,7 @@ Gere EXCLUSIVAMENTE o JSON abaixo (sem texto extra, sem markdown, sem backticks)
   "comoDelegarTarefas": "<como delegar tarefas de forma eficaz para este perfil DISC específico>",
   "comoDarFeedback": "<como dar feedback construtivo para este perfil DISC>",
   "fitCultura": "<análise do fit cultural considerando os valores e ritmo da empresa>",
-  "compatibilidadeLider": "${leadersContext ? "<análise da compatibilidade com o líder direto baseada nos perfis DISC>" : "Não aplicável — sem líderes com dados psicométricos"}",
+${leaderFields}
   "perguntasComplementares": ["<pergunta 1>", "<pergunta 2>", "<pergunta 3>"]
 }`;
 
@@ -136,7 +145,10 @@ export async function POST(
   const company = job.company;
   const ctx = company.contextoJson as any;
   const perfilIdeal = job.perfilIdealJson as any;
+
+  // Prefer liderId (new field), fallback to first entry of lideresJson for backward compat
   const lideresIds: string[] = Array.isArray(job.lideresJson) ? (job.lideresJson as string[]) : [];
+  const primaryLiderId: string | null = job.liderId ?? lideresIds[0] ?? null;
 
   const jobContext = `EMPRESA:
 - Razão Social: ${company.razaoSocial}
@@ -152,31 +164,44 @@ VAGA:
 - Perfil DISC ideal: ${perfilIdeal?.perfilIdeal ? JSON.stringify(perfilIdeal.perfilIdeal) : "Não definido"}`;
 
   let leadersContext = "";
-  if (lideresIds.length > 0) {
-    const leaderResults = await prisma.personalityResult.findMany({
-      where: {
-        companyId: user.companyId,
-        nodeId: { in: lideresIds },
-        NOT: { discJson: undefined },
-      },
-    });
+  let liderNome: string | null = null;
 
-    const validLeaderResults = leaderResults.filter((lr: any) => lr.discJson != null);
+  if (primaryLiderId) {
+    const [leaderResult, leaderNode] = await Promise.all([
+      prisma.personalityResult.findFirst({
+        where: { companyId: user.companyId, nodeId: primaryLiderId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.organogramaNode.findFirst({
+        where: { id: primaryLiderId },
+        select: { nome: true, cargo: true },
+      }),
+    ]);
 
-    if (validLeaderResults.length > 0) {
-      const leaderNodes = await prisma.organogramaNode.findMany({
-        where: { id: { in: lideresIds } },
-        select: { id: true, nome: true, cargo: true },
-      });
-      const nodeMap = Object.fromEntries(leaderNodes.map((n: any) => [n.id, n]));
+    if (leaderNode) {
+      liderNome = leaderNode.nome;
+    }
 
-      const leaderLines = validLeaderResults.map((lr: any) => {
-        const disc = lr.discJson as any;
-        const node = nodeMap[lr.nodeId ?? ""];
-        const name = node ? `${node.nome} (${node.cargo})` : "Líder";
-        return `  - ${name}: DISC ${disc?.dominant ?? "?"} | D=${disc?.percentages?.D ?? 0}% I=${disc?.percentages?.I ?? 0}% S=${disc?.percentages?.S ?? 0}% C=${disc?.percentages?.C ?? 0}%`;
-      });
-      leadersContext = `\nLÍDERES DIRETOS DA VAGA (para análise de compatibilidade):\n${leaderLines.join("\n")}`;
+    if (leaderResult?.discJson) {
+      const disc = leaderResult.discJson as any;
+      const enn = leaderResult.enneagramJson as any;
+      const mbti = leaderResult.mbtiJson as any;
+
+      const name = leaderNode ? `${leaderNode.nome} (${leaderNode.cargo})` : "Líder";
+
+      const ennDominant = enn?.dominant;
+      const ennWing = enn?.wing;
+      const ennStr = ennDominant
+        ? `${ennDominant} (${ENNEAGRAM_NAMES[ennDominant] ?? ""})${ennWing ? ` asa ${ennDominant}w${ennWing}` : ""}`
+        : "não realizado";
+
+      const mbtiStr = mbti?.type ?? "não realizado";
+
+      leadersContext = `\nLÍDER DIRETO DA VAGA (para análise de compatibilidade com o candidato):
+  - Nome: ${name}
+  - DISC: ${disc?.dominant ?? "?"} | D=${disc?.percentages?.D ?? 0}% I=${disc?.percentages?.I ?? 0}% S=${disc?.percentages?.S ?? 0}% C=${disc?.percentages?.C ?? 0}%
+  - Eneagrama: ${ennStr}
+  - MBTI: ${mbtiStr}`;
     }
   }
 
@@ -191,7 +216,8 @@ VAGA:
           c.personalityResults[0].enneagramJson,
           c.personalityResults[0].mbtiJson,
           jobContext,
-          leadersContext
+          leadersContext,
+          !!leadersContext
         ).catch(() => null)
       )
     );
@@ -237,15 +263,16 @@ VAGA:
     )
   );
 
-  return NextResponse.json(
-    saved.map((s: any) => ({
+  return NextResponse.json({
+    liderNome,
+    reports: saved.map((s: any) => ({
       id: s.id,
       candidateId: s.candidateId,
       rankingPosition: s.rankingPosition,
       matchScore: s.matchScore,
       relatorio: s.relatorioJson,
-    }))
-  );
+    })),
+  });
 }
 
 export async function GET(

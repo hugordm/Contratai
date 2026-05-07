@@ -19,10 +19,25 @@ export default async function MatchPage({ params }: Props) {
 
   const job = await prisma.job.findFirst({
     where: { id: jobId, companyId: user.companyId },
-    select: { id: true, titulo: true, motivo: true, responsabilidades: true, metas: true },
+    select: { id: true, titulo: true, motivo: true, responsabilidades: true, metas: true, liderId: true, lideresJson: true },
   });
 
   if (!job) return notFound();
+
+  // Resolve leader name from liderId or lideresJson fallback
+  const primaryLiderId: string | null =
+    job.liderId ??
+    (Array.isArray(job.lideresJson) ? (job.lideresJson as string[])[0] : null) ??
+    null;
+
+  let liderNome: string | null = null;
+  if (primaryLiderId) {
+    const leaderNode = await prisma.organogramaNode.findFirst({
+      where: { id: primaryLiderId },
+      select: { nome: true },
+    });
+    liderNome = leaderNode?.nome ?? null;
+  }
 
   const candidates = await prisma.candidate.findMany({
     where: { jobId, companyId: user.companyId },
@@ -65,6 +80,8 @@ export default async function MatchPage({ params }: Props) {
           totalCandidates={candidates.length}
           discCompletedCount={discCompletedIds.size}
           initialReports={initialReports}
+          liderNome={liderNome}
+          hasLider={!!primaryLiderId}
         />
       </main>
     </>
