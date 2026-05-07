@@ -18,6 +18,9 @@ export default function Navbar() {
             <Link href="/dashboard" className="text-sm text-white/70 hover:text-white transition">
               Dashboard
             </Link>
+            <Link href="/colaboradores" className="text-sm text-white/70 hover:text-white transition">
+              Colaboradores
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

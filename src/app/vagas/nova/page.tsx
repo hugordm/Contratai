@@ -10,44 +10,36 @@ const MOTIVOS = [
   { value: "nova_area", label: "Nova área / departamento" },
 ];
 
-interface OrganogramaNode {
+interface ColaboradorLider {
   id: string;
   nome: string;
   cargo: string;
   departamento?: string | null;
+  hasPersonality: boolean;
 }
 
 export default function NovaVagaPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [nodes, setNodes] = useState<OrganogramaNode[]>([]);
+  const [nodes, setNodes] = useState<ColaboradorLider[]>([]);
   const [form, setForm] = useState({
     titulo: "",
     motivo: "",
     responsabilidades: "",
     metas: "",
-    lideresJson: [] as string[],
+    liderId: "",
   });
 
   useEffect(() => {
-    fetch("/api/organograma")
+    fetch("/api/colaboradores")
       .then((r) => r.ok ? r.json() : [])
-      .then(setNodes)
+      .then((data: ColaboradorLider[]) => setNodes(data.filter((n) => n.hasPersonality)))
       .catch(() => {});
   }, []);
 
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
-
-  const toggleLider = (nodeId: string) => {
-    setForm((prev) => ({
-      ...prev,
-      lideresJson: prev.lideresJson.includes(nodeId)
-        ? prev.lideresJson.filter((id) => id !== nodeId)
-        : [...prev.lideresJson, nodeId],
-    }));
-  };
 
   const save = async (redirectTo: "ia" | "candidatos") => {
     if (!form.titulo.trim()) {
@@ -65,7 +57,7 @@ export default function NovaVagaPage() {
           motivo: form.motivo,
           responsabilidades: form.responsabilidades,
           metas: form.metas,
-          lideresJson: form.lideresJson,
+          lideresJson: form.liderId ? [form.liderId] : [],
         }),
       });
       if (!res.ok) {
@@ -166,40 +158,25 @@ export default function NovaVagaPage() {
               {nodes.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-[#4A5452] mb-2">
-                    Líderes da vaga{" "}
+                    Líder da vaga{" "}
                     <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-3">
-                    Selecione os líderes diretos para análise de compatibilidade no match.
+                    Selecione o líder direto para análise de compatibilidade no match.
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {nodes.map((node) => {
-                      const selected = form.lideresJson.includes(node.id);
-                      return (
-                        <button
-                          key={node.id}
-                          type="button"
-                          onClick={() => toggleLider(node.id)}
-                          className={`p-3 rounded-xl border-2 text-left transition ${
-                            selected
-                              ? "border-[#4A5452] bg-[#F5F7F0]"
-                              : "border-gray-200 hover:border-[#4A5452]"
-                          }`}
-                        >
-                          <p className="text-sm font-semibold text-[#4A5452]">{node.nome}</p>
-                          <p className="text-xs text-gray-500">{node.cargo}</p>
-                          {node.departamento && (
-                            <p className="text-xs text-gray-400">{node.departamento}</p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {form.lideresJson.length > 0 && (
-                    <p className="text-xs text-[#4A5452] mt-2 font-medium">
-                      {form.lideresJson.length} líder{form.lideresJson.length !== 1 ? "es" : ""} selecionado{form.lideresJson.length !== 1 ? "s" : ""}
-                    </p>
-                  )}
+                  <select
+                    value={form.liderId}
+                    onChange={(e) => set("liderId", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:border-[#4A5452] transition bg-white"
+                    style={{ minHeight: "52px" }}
+                  >
+                    <option value="">Nenhum líder selecionado</option>
+                    {nodes.map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {node.nome} — {node.cargo}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 

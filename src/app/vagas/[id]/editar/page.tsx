@@ -10,11 +10,12 @@ const MOTIVOS = [
   { value: "nova_area", label: "Nova área / departamento" },
 ];
 
-interface OrganogramaNode {
+interface ColaboradorLider {
   id: string;
   nome: string;
   cargo: string;
   departamento?: string | null;
+  hasPersonality: boolean;
 }
 
 interface Props {
@@ -28,14 +29,14 @@ export default function EditarVagaPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [nodes, setNodes] = useState<OrganogramaNode[]>([]);
+  const [nodes, setNodes] = useState<ColaboradorLider[]>([]);
 
   const [form, setForm] = useState({
     titulo: "",
     motivo: "",
     responsabilidades: "",
     metas: "",
-    lideresJson: [] as string[],
+    liderId: "",
   });
 
   useEffect(() => {
@@ -43,22 +44,25 @@ export default function EditarVagaPage({ params }: Props) {
       try {
         const [vagaRes, nodesRes] = await Promise.all([
           fetch(`/api/vagas/${jobId}`),
-          fetch("/api/organograma"),
+          fetch("/api/colaboradores"),
         ]);
 
         if (!vagaRes.ok) { router.push("/dashboard"); return; }
 
         const vaga = await vagaRes.json();
-        const nodesData: OrganogramaNode[] = nodesRes.ok ? await nodesRes.json() : [];
+        const nodesData: ColaboradorLider[] = nodesRes.ok ? await nodesRes.json() : [];
+        const withPersonality = nodesData.filter((n) => n.hasPersonality);
+
+        const existingLideres: string[] = Array.isArray(vaga.lideresJson) ? vaga.lideresJson : [];
 
         setForm({
           titulo: vaga.titulo ?? "",
           motivo: vaga.motivo ?? "",
           responsabilidades: vaga.responsabilidades ?? "",
           metas: vaga.metas ?? "",
-          lideresJson: Array.isArray(vaga.lideresJson) ? vaga.lideresJson : [],
+          liderId: existingLideres[0] ?? "",
         });
-        setNodes(nodesData);
+        setNodes(withPersonality);
       } finally {
         setLoading(false);
       }
@@ -69,15 +73,6 @@ export default function EditarVagaPage({ params }: Props) {
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const toggleLider = (nodeId: string) => {
-    setForm((prev) => ({
-      ...prev,
-      lideresJson: prev.lideresJson.includes(nodeId)
-        ? prev.lideresJson.filter((id) => id !== nodeId)
-        : [...prev.lideresJson, nodeId],
-    }));
-  };
-
   const save = async () => {
     if (!form.titulo.trim()) { setError("O campo cargo é obrigatório."); return; }
     setSaving(true);
@@ -86,7 +81,13 @@ export default function EditarVagaPage({ params }: Props) {
       const res = await fetch(`/api/vagas/${jobId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          titulo: form.titulo,
+          motivo: form.motivo,
+          responsabilidades: form.responsabilidades,
+          metas: form.metas,
+          lideresJson: form.liderId ? [form.liderId] : [],
+        }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -196,40 +197,25 @@ export default function EditarVagaPage({ params }: Props) {
               {nodes.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-[#4A5452] mb-2">
-                    Líderes da vaga{" "}
+                    Líder da vaga{" "}
                     <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-3">
-                    Selecione os líderes diretos desta posição para análise de compatibilidade.
+                    Selecione o líder direto desta posição para análise de compatibilidade.
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {nodes.map((node) => {
-                      const selected = form.lideresJson.includes(node.id);
-                      return (
-                        <button
-                          key={node.id}
-                          type="button"
-                          onClick={() => toggleLider(node.id)}
-                          className={`p-3 rounded-xl border-2 text-left transition ${
-                            selected
-                              ? "border-[#4A5452] bg-[#F5F7F0]"
-                              : "border-gray-200 hover:border-[#4A5452]"
-                          }`}
-                        >
-                          <p className="text-sm font-semibold text-[#4A5452]">{node.nome}</p>
-                          <p className="text-xs text-gray-500">{node.cargo}</p>
-                          {node.departamento && (
-                            <p className="text-xs text-gray-400">{node.departamento}</p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {form.lideresJson.length > 0 && (
-                    <p className="text-xs text-[#4A5452] mt-2 font-medium">
-                      {form.lideresJson.length} líder{form.lideresJson.length !== 1 ? "es" : ""} selecionado{form.lideresJson.length !== 1 ? "s" : ""}
-                    </p>
-                  )}
+                  <select
+                    value={form.liderId}
+                    onChange={(e) => set("liderId", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:border-[#4A5452] transition bg-white"
+                    style={{ minHeight: "52px" }}
+                  >
+                    <option value="">Nenhum líder selecionado</option>
+                    {nodes.map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {node.nome} — {node.cargo}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
