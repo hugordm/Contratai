@@ -77,10 +77,9 @@ export default function VagaClient({
   const [formError, setFormError] = useState("");
 
   const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<Set<string>>(new Set());
-  const [genericLinkState, setGenericLinkState] = useState<"idle" | "loading" | "copied">("idle");
+  const [copiedIaLink, setCopiedIaLink] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -139,23 +138,6 @@ export default function VagaClient({
     }
   };
 
-  const copyTestLink = async (candidateId: string) => {
-    setCopiedId(candidateId);
-    try {
-      const res = await fetch("/api/test-links", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateId }),
-      });
-      if (!res.ok) { setCopiedId(null); return; }
-      const { url } = await res.json();
-      await navigator.clipboard.writeText(url);
-      setTimeout(() => setCopiedId(null), 2500);
-    } catch {
-      setCopiedId(null);
-    }
-  };
-
   const sendEmail = async (candidateId: string) => {
     setSendingEmail(candidateId);
     try {
@@ -168,22 +150,12 @@ export default function VagaClient({
     }
   };
 
-  const copyGenericLink = async () => {
-    setGenericLinkState("loading");
-    try {
-      const res = await fetch("/api/test-links", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) { setGenericLinkState("idle"); return; }
-      const { url } = await res.json();
-      await navigator.clipboard.writeText(url);
-      setGenericLinkState("copied");
-      setTimeout(() => setGenericLinkState("idle"), 3000);
-    } catch {
-      setGenericLinkState("idle");
-    }
+  const copyApplicationLink = () => {
+    const link = `${window.location.origin}/candidatura/${jobId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedIaLink(true);
+      setTimeout(() => setCopiedIaLink(false), 2500);
+    });
   };
 
   const deleteJob = async () => {
@@ -245,6 +217,12 @@ export default function VagaClient({
               </span>
             </Link>
           )}
+          <Link
+            href={`/vagas/${jobId}/editar`}
+            className="text-sm text-gray-600 hover:text-[#4A5452] hover:bg-[#F5F7F0] px-3 py-2 rounded-xl transition border border-gray-200"
+          >
+            ✏️ Editar vaga
+          </Link>
           <button
             onClick={() => setShowDeleteModal(true)}
             className="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-xl transition"
@@ -468,15 +446,10 @@ export default function VagaClient({
 
               <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={copyGenericLink}
-                  disabled={genericLinkState === "loading"}
-                  className="flex items-center gap-2 text-sm font-semibold text-[#4A5452] border border-[#4A5452] px-4 py-2.5 rounded-xl hover:bg-[#4A5452] hover:text-white transition disabled:opacity-50"
+                  onClick={copyApplicationLink}
+                  className="flex items-center gap-2 text-sm font-semibold text-[#4A5452] border border-[#4A5452] px-4 py-2.5 rounded-xl hover:bg-[#4A5452] hover:text-white transition"
                 >
-                  {genericLinkState === "copied"
-                    ? "✅ Link copiado!"
-                    : genericLinkState === "loading"
-                    ? "Gerando..."
-                    : "🔗 Copiar link de candidatura"}
+                  {copiedIaLink ? "✅ Link copiado!" : "📋 Copiar link de candidatura"}
                 </button>
                 <button
                   onClick={generateJD}
@@ -485,10 +458,9 @@ export default function VagaClient({
                   Gerar novamente
                 </button>
               </div>
-              {genericLinkState === "copied" && (
+              {copiedIaLink && (
                 <p className="text-xs text-gray-500 -mt-4">
-                  Compartilhe este link para que candidatos realizem a avaliação de perfil
-                  comportamental.
+                  Compartilhe este link para que candidatos se candidatem à vaga.
                 </p>
               )}
             </div>
@@ -630,29 +602,21 @@ export default function VagaClient({
                       Ver resultado
                     </Link>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => copyTestLink(candidate.id)}
-                        className="text-xs font-medium border border-gray-200 px-2.5 py-1.5 rounded-lg text-gray-600 hover:border-[#4A5452] hover:text-[#4A5452] transition"
-                      >
-                        {copiedId === candidate.id ? "✓ Copiado" : "🔗 Link"}
-                      </button>
-                      <button
-                        onClick={() => sendEmail(candidate.id)}
-                        disabled={sendingEmail === candidate.id}
-                        className={`text-xs font-medium border px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 ${
-                          emailSent.has(candidate.id)
-                            ? "bg-[#C4FF57] border-[#b3ee46] text-[#4A5452]"
-                            : "border-gray-200 text-gray-600 hover:border-[#4A5452] hover:text-[#4A5452]"
-                        }`}
-                      >
-                        {sendingEmail === candidate.id
-                          ? "Enviando..."
-                          : emailSent.has(candidate.id)
-                          ? "✓ E-mail enviado"
-                          : "📧 Enviar"}
-                      </button>
-                    </>
+                    <button
+                      onClick={() => sendEmail(candidate.id)}
+                      disabled={sendingEmail === candidate.id}
+                      className={`text-xs font-medium border px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 ${
+                        emailSent.has(candidate.id)
+                          ? "bg-[#C4FF57] border-[#b3ee46] text-[#4A5452]"
+                          : "border-gray-200 text-gray-600 hover:border-[#4A5452] hover:text-[#4A5452]"
+                      }`}
+                    >
+                      {sendingEmail === candidate.id
+                        ? "Enviando..."
+                        : emailSent.has(candidate.id)
+                        ? "✓ E-mail enviado"
+                        : "📧 Enviar link"}
+                    </button>
                   )}
                   <button
                     onClick={() => setDeleteCandidate({ id: candidate.id, nome: candidate.nome })}

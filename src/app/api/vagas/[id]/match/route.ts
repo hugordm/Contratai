@@ -28,7 +28,8 @@ async function analyzeCandidate(
   discJson: any,
   enneagramJson: any,
   mbtiJson: any,
-  jobContext: string
+  jobContext: string,
+  leadersContext: string
 ): Promise<any> {
   const disc = discJson as any;
   const percentages = disc?.percentages ?? {};
@@ -54,6 +55,7 @@ ${ennLine}
 ${mbtiLine}
 
 ${jobContext}
+${leadersContext}
 
 Gere EXCLUSIVAMENTE o JSON abaixo (sem texto extra, sem markdown, sem backticks):
 {
@@ -65,6 +67,7 @@ Gere EXCLUSIVAMENTE o JSON abaixo (sem texto extra, sem markdown, sem backticks)
   "comoDelegarTarefas": "<como delegar tarefas de forma eficaz para este perfil DISC específico>",
   "comoDarFeedback": "<como dar feedback construtivo para este perfil DISC>",
   "fitCultura": "<análise do fit cultural considerando os valores e ritmo da empresa>",
+  "compatibilidadeLider": "${leadersContext ? "<análise da compatibilidade com o líder direto baseada nos perfis DISC>" : "Não aplicável — sem líderes com dados psicométricos"}",
   "perguntasComplementares": ["<pergunta 1>", "<pergunta 2>", "<pergunta 3>"]
 }`;
 
@@ -133,6 +136,7 @@ export async function POST(
   const company = job.company;
   const ctx = company.contextoJson as any;
   const perfilIdeal = job.perfilIdealJson as any;
+  const lideresIds: string[] = Array.isArray(job.lideresJson) ? (job.lideresJson as string[]) : [];
 
   const jobContext = `EMPRESA:
 - Razão Social: ${company.razaoSocial}
@@ -147,6 +151,35 @@ VAGA:
 - Metas (90 dias): ${job.metas ?? "Não informado"}
 - Perfil DISC ideal: ${perfilIdeal?.perfilIdeal ? JSON.stringify(perfilIdeal.perfilIdeal) : "Não definido"}`;
 
+  let leadersContext = "";
+  if (lideresIds.length > 0) {
+    const leaderResults = await prisma.personalityResult.findMany({
+      where: {
+        companyId: user.companyId,
+        nodeId: { in: lideresIds },
+        NOT: { discJson: undefined },
+      },
+    });
+
+    const validLeaderResults = leaderResults.filter((lr: any) => lr.discJson != null);
+
+    if (validLeaderResults.length > 0) {
+      const leaderNodes = await prisma.organogramaNode.findMany({
+        where: { id: { in: lideresIds } },
+        select: { id: true, nome: true, cargo: true },
+      });
+      const nodeMap = Object.fromEntries(leaderNodes.map((n: any) => [n.id, n]));
+
+      const leaderLines = validLeaderResults.map((lr: any) => {
+        const disc = lr.discJson as any;
+        const node = nodeMap[lr.nodeId ?? ""];
+        const name = node ? `${node.nome} (${node.cargo})` : "Líder";
+        return `  - ${name}: DISC ${disc?.dominant ?? "?"} | D=${disc?.percentages?.D ?? 0}% I=${disc?.percentages?.I ?? 0}% S=${disc?.percentages?.S ?? 0}% C=${disc?.percentages?.C ?? 0}%`;
+      });
+      leadersContext = `\nLÍDERES DIRETOS DA VAGA (para análise de compatibilidade):\n${leaderLines.join("\n")}`;
+    }
+  }
+
   let results: any[];
   try {
     results = await Promise.all(
@@ -157,7 +190,8 @@ VAGA:
           c.personalityResults[0].discJson,
           c.personalityResults[0].enneagramJson,
           c.personalityResults[0].mbtiJson,
-          jobContext
+          jobContext,
+          leadersContext
         ).catch(() => null)
       )
     );

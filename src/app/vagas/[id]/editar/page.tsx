@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/NavBar";
 
@@ -17,11 +17,19 @@ interface OrganogramaNode {
   departamento?: string | null;
 }
 
-export default function NovaVagaPage() {
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+export default function EditarVagaPage({ params }: Props) {
+  const { id: jobId } = use(params);
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [nodes, setNodes] = useState<OrganogramaNode[]>([]);
+
   const [form, setForm] = useState({
     titulo: "",
     motivo: "",
@@ -31,11 +39,32 @@ export default function NovaVagaPage() {
   });
 
   useEffect(() => {
-    fetch("/api/organograma")
-      .then((r) => r.ok ? r.json() : [])
-      .then(setNodes)
-      .catch(() => {});
-  }, []);
+    async function load() {
+      try {
+        const [vagaRes, nodesRes] = await Promise.all([
+          fetch(`/api/vagas/${jobId}`),
+          fetch("/api/organograma"),
+        ]);
+
+        if (!vagaRes.ok) { router.push("/dashboard"); return; }
+
+        const vaga = await vagaRes.json();
+        const nodesData: OrganogramaNode[] = nodesRes.ok ? await nodesRes.json() : [];
+
+        setForm({
+          titulo: vaga.titulo ?? "",
+          motivo: vaga.motivo ?? "",
+          responsabilidades: vaga.responsabilidades ?? "",
+          metas: vaga.metas ?? "",
+          lideresJson: Array.isArray(vaga.lideresJson) ? vaga.lideresJson : [],
+        });
+        setNodes(nodesData);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [jobId, router]);
 
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -49,38 +78,39 @@ export default function NovaVagaPage() {
     }));
   };
 
-  const save = async (redirectTo: "ia" | "candidatos") => {
-    if (!form.titulo.trim()) {
-      setError("O campo cargo é obrigatório.");
-      return;
-    }
-    setLoading(true);
+  const save = async () => {
+    if (!form.titulo.trim()) { setError("O campo cargo é obrigatório."); return; }
+    setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/vagas", {
-        method: "POST",
+      const res = await fetch(`/api/vagas/${jobId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          titulo: form.titulo,
-          motivo: form.motivo,
-          responsabilidades: form.responsabilidades,
-          metas: form.metas,
-          lideresJson: form.lideresJson,
-        }),
+        body: JSON.stringify(form),
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error ?? "Erro ao criar vaga.");
-        setLoading(false);
+        setError(data.error ?? "Erro ao salvar.");
         return;
       }
-      const { id } = await res.json();
-      router.push(`/vagas/${id}${redirectTo === "ia" ? "?ajuda=ia" : ""}`);
+      router.push(`/vagas/${jobId}`);
     } catch {
       setError("Erro de conexão. Tente novamente.");
-      setLoading(false);
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-[#F5F7F0] p-4 md:p-8 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#4A5452] border-t-transparent rounded-full animate-spin" />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -89,17 +119,17 @@ export default function NovaVagaPage() {
         <div className="max-w-2xl mx-auto">
           <div className="mb-6">
             <a
-              href="/dashboard"
+              href={`/vagas/${jobId}`}
               className="text-sm text-gray-500 hover:text-gray-700 transition"
             >
-              ← Voltar ao dashboard
+              ← Voltar à vaga
             </a>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
-            <h1 className="text-2xl font-bold text-[#4A5452] mb-1">Nova Vaga</h1>
+            <h1 className="text-2xl font-bold text-[#4A5452] mb-1">Editar Vaga</h1>
             <p className="text-gray-500 text-sm mb-8">
-              Preencha as informações da vaga para iniciar o processo seletivo.
+              Atualize as informações da vaga.
             </p>
 
             <div className="space-y-6">
@@ -128,7 +158,7 @@ export default function NovaVagaPage() {
                   style={{ minHeight: "52px" }}
                 >
                   <option value="">Selecione o motivo</option>
-                  {MOTIVOS.map((m: any) => (
+                  {MOTIVOS.map((m) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
                     </option>
@@ -170,7 +200,7 @@ export default function NovaVagaPage() {
                     <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-3">
-                    Selecione os líderes diretos para análise de compatibilidade no match.
+                    Selecione os líderes diretos desta posição para análise de compatibilidade.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {nodes.map((node) => {
@@ -203,27 +233,24 @@ export default function NovaVagaPage() {
                 </div>
               )}
 
-              {error && (
-                <p className="text-red-500 text-sm">{error}</p>
-              )}
+              {error && <p className="text-red-500 text-sm">{error}</p>}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <a
+                href={`/vagas/${jobId}`}
+                className="flex-1 text-center border-2 border-gray-200 text-gray-600 font-bold py-4 rounded-xl text-base hover:bg-gray-50 transition"
+                style={{ minHeight: "56px", lineHeight: "1", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                Cancelar
+              </a>
               <button
-                onClick={() => save("ia")}
-                disabled={loading}
+                onClick={save}
+                disabled={saving}
                 className="flex-1 bg-[#C4FF57] text-[#4A5452] font-bold py-4 rounded-xl text-base hover:bg-[#b3ee46] transition disabled:opacity-50"
                 style={{ minHeight: "56px" }}
               >
-                {loading ? "Salvando..." : "✨ Preciso de ajuda da IA"}
-              </button>
-              <button
-                onClick={() => save("candidatos")}
-                disabled={loading}
-                className="flex-1 border-2 border-[#4A5452] text-[#4A5452] font-bold py-4 rounded-xl text-base hover:bg-[#4A5452] hover:text-white transition disabled:opacity-50"
-                style={{ minHeight: "56px" }}
-              >
-                {loading ? "Salvando..." : "Já tenho candidatos"}
+                {saving ? "Salvando..." : "Salvar alterações"}
               </button>
             </div>
           </div>

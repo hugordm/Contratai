@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -174,7 +176,15 @@ export default function ChatSidebar({ jobId }: Props) {
                       : "bg-[#F5F7F0] text-gray-800 rounded-bl-sm"
                   }`}
                 >
-                  {msg.content || (
+                  {msg.content ? (
+                    msg.role === "assistant" ? (
+                      <div className="[&_h1]:font-bold [&_h1]:text-sm [&_h1]:mb-1.5 [&_h2]:font-bold [&_h2]:text-sm [&_h2]:mb-1.5 [&_h3]:font-semibold [&_h3]:text-sm [&_h3]:mb-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:mb-2 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_code]:bg-black/10 [&_code]:rounded [&_code]:px-1 [&_code]:text-xs [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-2 [&_blockquote]:text-gray-600 [&_hr]:border-gray-200 [&_hr]:my-2">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      msg.content
+                    )
+                  ) : (
                     <span className="flex gap-1 items-center text-gray-400">
                       <span className="animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
                       <span className="animate-bounce" style={{ animationDelay: "150ms" }}>·</span>

@@ -55,6 +55,7 @@ model Job {
   salaryMin         Float?
   salaryMax         Float?
   perfilIdealJson   Json?
+  lideresJson       Json?
   status            String   @default("active")
   createdAt         DateTime @default(now())
 
@@ -90,6 +91,7 @@ model PersonalityResult {
   companyId     String
   subjectId     String?
   subjectType   String
+  nodeId        String?
   discJson      Json?
   enneagramJson Json?
   mbtiJson      Json?

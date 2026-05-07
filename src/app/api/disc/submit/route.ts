@@ -57,11 +57,26 @@ export async function POST(req: NextRequest) {
 
   const disc = calculateDISC(answers);
 
+  let subjectType = "anonymous";
+  let nodeId: string | undefined;
+
+  if (testLink.candidateId) {
+    subjectType = "candidate";
+  } else if (testLink.type === "employee") {
+    subjectType = "employee";
+    const node = await prisma.organogramaNode.findFirst({
+      where: { testLinkToken: token, companyId: testLink.companyId },
+      select: { id: true },
+    });
+    if (node) nodeId = node.id;
+  }
+
   const result = await prisma.personalityResult.create({
     data: {
       companyId: testLink.companyId,
       subjectId: testLink.candidateId ?? undefined,
-      subjectType: testLink.candidateId ? "candidate" : "anonymous",
+      subjectType,
+      nodeId,
       discJson: {
         ...disc,
         answers,

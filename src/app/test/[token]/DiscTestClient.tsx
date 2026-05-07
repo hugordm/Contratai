@@ -226,15 +226,20 @@ export default function DiscTestClient({ token, candidateName, companyName }: Pr
             <button
               key={q.id}
               onClick={() => setCurrent(idx)}
-              className={`w-4 h-4 rounded-full transition-all ${
-                answers[q.id]
-                  ? "bg-[#4A5452]"
-                  : idx === current
-                  ? "bg-gray-400"
-                  : "bg-gray-200"
-              }`}
+              className="w-4 h-4 rounded-full transition-all"
               title={`Pergunta ${idx + 1}`}
-              style={{ minHeight: "16px", minWidth: "16px" }}
+              style={{
+                minHeight: "16px",
+                minWidth: "16px",
+                backgroundColor: idx === current
+                  ? "#C4FF57"
+                  : answers[q.id]
+                  ? "#4A5452"
+                  : "#FF6B6B",
+                outline: idx === current ? "2px solid white" : "none",
+                outlineOffset: "1px",
+                boxShadow: idx === current ? "0 0 0 2px #4A5452" : "none",
+              }}
             />
           ))}
         </div>

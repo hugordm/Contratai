@@ -162,15 +162,18 @@ export default function EnneagramClient({ token }: Props) {
             <button
               key={q.id}
               onClick={() => setCurrent(idx)}
-              className={`w-4 h-4 rounded-full transition-all`}
+              className="w-4 h-4 rounded-full transition-all"
               style={{
-                backgroundColor: answers[q.id]
+                backgroundColor: idx === current
+                  ? "#C4FF57"
+                  : answers[q.id]
                   ? "#4A5452"
-                  : idx === current
-                  ? "#9ca3af"
-                  : "#e5e7eb",
+                  : "#FF6B6B",
                 minHeight: "16px",
                 minWidth: "16px",
+                outline: idx === current ? "2px solid white" : "none",
+                outlineOffset: "1px",
+                boxShadow: idx === current ? "0 0 0 2px #4A5452" : "none",
               }}
               title={`Pergunta ${idx + 1}`}
             />

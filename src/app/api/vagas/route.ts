@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { titulo, motivo, responsabilidades, metas } = body;
+  const { titulo, motivo, responsabilidades, metas, lideresJson } = body;
 
   if (!titulo?.trim()) {
     return NextResponse.json({ error: "Cargo é obrigatório" }, { status: 400 });
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       motivo: motivo ?? null,
       responsabilidades: responsabilidades?.trim() || null,
       metas: metas?.trim() || null,
+      lideresJson: Array.isArray(lideresJson) && lideresJson.length > 0 ? lideresJson : undefined,
       status: "active",
     },
   });

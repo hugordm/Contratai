@@ -162,11 +162,14 @@ export default function MBTIClient({ token }: Props) {
                 height: "14px",
                 minWidth: "14px",
                 minHeight: "14px",
-                backgroundColor: answers[q.id]
+                backgroundColor: idx === current
+                  ? "#C4FF57"
+                  : answers[q.id]
                   ? "#4A5452"
-                  : idx === current
-                  ? "#9ca3af"
-                  : "#e5e7eb",
+                  : "#FF6B6B",
+                outline: idx === current ? "2px solid white" : "none",
+                outlineOffset: "1px",
+                boxShadow: idx === current ? "0 0 0 2px #4A5452" : "none",
               }}
               title={`Pergunta ${idx + 1}`}
             />
