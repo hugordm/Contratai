@@ -129,7 +129,7 @@ Seja direto, prático e use linguagem profissional mas acessível. Foque em insi
     async start(controller) {
       try {
         const stream = anthropic.messages.stream({
-          model: "claude-sonnet-4-5",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 1000,
           system: systemPrompt,
           messages: anthropicMessages,

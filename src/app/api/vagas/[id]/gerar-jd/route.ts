@@ -75,7 +75,7 @@ Gere EXCLUSIVAMENTE o JSON abaixo (sem texto extra, sem markdown, sem backticks)
 }`;
 
   const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 4000,
     system:
       "Você é um especialista sênior em RH e talent acquisition no mercado brasileiro. Responda EXCLUSIVAMENTE com JSON válido. Não use markdown, não use backticks, não escreva nenhum texto fora do objeto JSON.",
