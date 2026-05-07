@@ -2,10 +2,24 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import DiscTestClient from "./DiscTestClient";
 import EnneagramClient from "./EnneagramClient";
+import MBTIClient from "./MBTIClient";
 
 interface Props {
   params: Promise<{ token: string }>;
 }
+
+type Step = 1 | 2 | 3;
+
+interface StepDef {
+  label: string;
+  num: 1 | 2 | 3;
+}
+
+const STEPS: StepDef[] = [
+  { num: 1, label: "DISC" },
+  { num: 2, label: "Eneagrama" },
+  { num: 3, label: "16 Personalidades" },
+];
 
 export default async function TestPage({ params }: Props) {
   const { token } = await params;
@@ -22,7 +36,16 @@ export default async function TestPage({ params }: Props) {
 
   const companyName = testLink.company.razaoSocial;
   const logoUrl = testLink.company.logoUrl ?? null;
-  const candidateName = testLink.candidate?.nome ?? null;
+
+  // Candidate name: from Candidate record, or from OrganogramaNode for employee links
+  let candidateName: string | null = testLink.candidate?.nome ?? null;
+  if (!candidateName && testLink.type === "employee") {
+    const node = await prisma.organogramaNode.findFirst({
+      where: { testLinkToken: token },
+      select: { nome: true },
+    });
+    candidateName = node?.nome ?? null;
+  }
 
   if (testLink.completedAt) {
     return (
@@ -62,7 +85,6 @@ export default async function TestPage({ params }: Props) {
     );
   }
 
-  // Detect which step the candidate is on
   const existingResult = await prisma.personalityResult.findFirst({
     where: {
       companyId: testLink.companyId,
@@ -72,7 +94,8 @@ export default async function TestPage({ params }: Props) {
   });
 
   const discDone = !!existingResult?.discJson;
-  const step = discDone ? 2 : 1;
+  const ennDone = !!existingResult?.enneagramJson;
+  const step: Step = !discDone ? 1 : !ennDone ? 2 : 3;
 
   return (
     <div className="min-h-screen bg-[#F5F7F0]">
@@ -89,46 +112,46 @@ export default async function TestPage({ params }: Props) {
               Olá, <strong>{candidateName}</strong>
             </span>
           )}
+
           {/* Step indicator */}
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
-                style={{
-                  backgroundColor: step >= 1 ? "#4A5452" : "#e5e7eb",
-                  color: step >= 1 ? "#C4FF57" : "#9ca3af",
-                }}
-              >
-                {step > 1 ? "✓" : "1"}
-              </span>
-              <span className="text-xs font-medium text-gray-500">DISC</span>
-            </div>
-            <div className="w-6 h-px bg-gray-300" />
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
-                style={{
-                  backgroundColor: step >= 2 ? "#4A5452" : "#e5e7eb",
-                  color: step >= 2 ? "#C4FF57" : "#9ca3af",
-                }}
-              >
-                2
-              </span>
-              <span className="text-xs font-medium text-gray-500">Eneagrama</span>
-            </div>
+          <div className="flex items-center gap-1 mt-2">
+            {STEPS.map((s, i) => {
+              const done = s.num < step;
+              const active = s.num === step;
+              return (
+                <div key={s.num} className="flex items-center gap-1">
+                  <div className="flex items-center gap-1">
+                    <span
+                      className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                      style={{
+                        backgroundColor: done || active ? "#4A5452" : "#e5e7eb",
+                        color: done || active ? "#C4FF57" : "#9ca3af",
+                      }}
+                    >
+                      {done ? "✓" : s.num}
+                    </span>
+                    <span className="text-[11px] font-medium text-gray-500 hidden sm:inline">
+                      {s.label}
+                    </span>
+                    <span className="text-[10px] font-medium text-gray-500 sm:hidden">
+                      {s.num}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div className="w-5 h-px bg-gray-300 mx-0.5" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </header>
 
-      {discDone ? (
-        <EnneagramClient token={token} />
-      ) : (
-        <DiscTestClient
-          token={token}
-          candidateName={candidateName}
-          companyName={companyName}
-        />
+      {step === 1 && (
+        <DiscTestClient token={token} candidateName={candidateName} companyName={companyName} />
       )}
+      {step === 2 && <EnneagramClient token={token} />}
+      {step === 3 && <MBTIClient token={token} />}
     </div>
   );
 }

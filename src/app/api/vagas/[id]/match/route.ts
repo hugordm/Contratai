@@ -27,6 +27,7 @@ async function analyzeCandidate(
   candidateName: string,
   discJson: any,
   enneagramJson: any,
+  mbtiJson: any,
   jobContext: string
 ): Promise<any> {
   const disc = discJson as any;
@@ -40,11 +41,17 @@ async function analyzeCandidate(
     ? `- Tipo Eneagrama: ${ennDominant} (${ENNEAGRAM_NAMES[ennDominant] ?? ""})${ennWing ? ` — Asa ${ennDominant}w${ennWing}` : ""}`
     : "- Tipo Eneagrama: não realizado";
 
+  const mbti = mbtiJson as any;
+  const mbtiLine = mbti?.type
+    ? `- 16 Personalidades (MBTI): ${mbti.type}`
+    : "- 16 Personalidades: não realizado";
+
   const candidateContext = `CANDIDATO:
 - Nome: ${candidateName}
 - Perfil DISC dominante: ${dominant}
 - Percentuais DISC: D=${percentages.D ?? 0}% | I=${percentages.I ?? 0}% | S=${percentages.S ?? 0}% | C=${percentages.C ?? 0}%
 ${ennLine}
+${mbtiLine}
 
 ${jobContext}
 
@@ -149,6 +156,7 @@ VAGA:
           c.nome,
           c.personalityResults[0].discJson,
           c.personalityResults[0].enneagramJson,
+          c.personalityResults[0].mbtiJson,
           jobContext
         ).catch(() => null)
       )
@@ -169,7 +177,7 @@ VAGA:
   }
 
   const sorted = [...results].sort((a, b) => b.matchScore - a.matchScore);
-  sorted.forEach((r, i) => {
+  sorted.forEach((r: any, i: number) => {
     r.rankingPosition = i + 1;
   });
 

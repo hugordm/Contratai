@@ -80,7 +80,7 @@ export async function POST(
   const ctx = company.contextoJson as any;
 
   const candidatesSummary = job.candidates
-    .map((c) => {
+    .map((c: any) => {
       const disc = c.personalityResults[0]?.discJson as any;
       const match = c.matchReports[0];
       const relatorio = match?.relatorioJson as any;
@@ -116,7 +116,7 @@ ${candidatesSummary || "Nenhum candidato adicionado ainda"}
 
 Seja direto, prático e use linguagem profissional mas acessível. Foque em insights acionáveis sobre os candidatos, a vaga e o processo seletivo. Responda em português brasileiro.`;
 
-  const anthropicMessages = history.slice(0, -1).map((m) => ({
+  const anthropicMessages = history.slice(0, -1).map((m: any) => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));

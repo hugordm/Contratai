@@ -3,9 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model Company {
@@ -26,6 +24,7 @@ model Company {
   personalityResults PersonalityResult[]
   chatMessages       ChatMessage[]
   testLinks          TestLink[]
+  organogramaNodes   OrganogramaNode[]
 }
 
 model User {
@@ -139,6 +138,21 @@ model TestLink {
 
   company   Company    @relation(fields: [companyId], references: [id])
   candidate Candidate? @relation(fields: [candidateId], references: [id])
+}
+
+model OrganogramaNode {
+  id            String   @id @default(cuid())
+  companyId     String
+  nome          String
+  cargo         String
+  departamento  String?
+  email         String?
+  parentId      String?
+  testLinkToken String?  @unique
+  resultados    String?
+  createdAt     DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 model Account {
