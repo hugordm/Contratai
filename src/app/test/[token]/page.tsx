@@ -24,6 +24,8 @@ const STEPS: StepDef[] = [
 export default async function TestPage({ params }: Props) {
   const { token } = await params;
 
+  console.log("TOKEN RECEBIDO:", token);
+
   const testLink = await prisma.testLink.findUnique({
     where: { token },
     include: {
@@ -32,7 +34,20 @@ export default async function TestPage({ params }: Props) {
     },
   });
 
-  if (!testLink) return notFound();
+  if (!testLink) {
+    return (
+      <main className="min-h-screen bg-[#F5F7F0] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-md w-full text-center">
+          <div className="text-4xl mb-4">🔍</div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Link não encontrado</h1>
+          <p className="text-gray-500 text-sm mb-4">
+            Nenhum teste foi encontrado para este link. Verifique se o endereço está correto ou solicite um novo link ao recrutador.
+          </p>
+          <p className="text-xs text-gray-300 font-mono break-all">token: {token}</p>
+        </div>
+      </main>
+    );
+  }
 
   const companyName = testLink.company.razaoSocial;
   const logoUrl = testLink.company.logoUrl ?? null;
