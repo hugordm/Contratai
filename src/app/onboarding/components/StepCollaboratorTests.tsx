@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import type { Colaborador } from "./StepOrgChart";
 
 export interface ColaboradorComToken extends Colaborador {
@@ -25,20 +25,17 @@ export default function StepCollaboratorTests({
   onNext,
   onBack,
 }: Props) {
-  const [copied, setCopied] = useState<string | null>(null);
-
-  // Generate tokens once on mount / when collaborators change
+  // Generate tokens once per collaborator for use by company/create when onboarding finalizes.
+  // Tokens are NOT shown here — links are only displayed after gerar-link saves them to the DB.
   useEffect(() => {
     if (colaboradoresComToken.length === colaboradores.length) return;
-    const withTokens: ColaboradorComToken[] = colaboradores.map((c: any) => ({
+    const items: ColaboradorComToken[] = colaboradores.map((c: any) => ({
       ...c,
       token: crypto.randomUUID(),
       resultados: "",
     }));
-    onUpdate(testOption || "nao_tenho", withTokens);
+    onUpdate(testOption || "nao_tenho", items);
   }, [colaboradores]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const handleOptionChange = (option: "ja_tenho" | "nao_tenho") => {
     onUpdate(option, colaboradoresComToken);
@@ -49,12 +46,6 @@ export default function StepCollaboratorTests({
       testOption as "ja_tenho" | "nao_tenho",
       colaboradoresComToken.map((c: any) => (c.id === id ? { ...c, resultados: value } : c))
     );
-  };
-
-  const copyLink = (token: string) => {
-    navigator.clipboard.writeText(`${baseUrl}/test/${token}`);
-    setCopied(token);
-    setTimeout(() => setCopied(null), 2000);
   };
 
   // If no collaborators, just let them proceed
@@ -113,35 +104,19 @@ export default function StepCollaboratorTests({
       {testOption === "nao_tenho" && (
         <div className="space-y-3">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Links de avaliação — {colaboradoresComToken.length} colaborador{colaboradoresComToken.length !== 1 ? "es" : ""}
+            Colaboradores — {colaboradoresComToken.length} cadastrado{colaboradoresComToken.length !== 1 ? "s" : ""}
           </p>
-          {colaboradoresComToken.map((c: any) => {
-            const url = `${baseUrl}/test/${c.token}`;
-            const isCopied = copied === c.token;
-            return (
-              <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#4A5452] truncate">{c.nome}</p>
-                  <p className="text-xs text-gray-400 truncate">{c.cargo}</p>
-                  <p className="text-xs text-gray-400 font-mono truncate mt-0.5">{url}</p>
-                </div>
-                <button
-                  onClick={() => copyLink(c.token)}
-                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                    isCopied
-                      ? "bg-green-100 text-green-700"
-                      : "bg-[#C4FF57] text-[#4A5452] hover:bg-[#b3ee46]"
-                  }`}
-                  style={{ minHeight: "36px", minWidth: "80px" }}
-                >
-                  {isCopied ? "✓ Copiado" : "Copiar link"}
-                </button>
+          {colaboradoresComToken.map((c: any) => (
+            <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#4A5452] truncate">{c.nome}</p>
+                <p className="text-xs text-gray-400 truncate">{c.cargo}</p>
               </div>
-            );
-          })}
-          <p className="text-xs text-gray-400 mt-1">
-            Os links são gerados quando você finalizar o cadastro.
-          </p>
+            </div>
+          ))}
+          <div className="bg-[#F5F7F0] rounded-xl p-4 text-sm text-gray-600 mt-2">
+            🔗 Os links de avaliação serão gerados após a conclusão do cadastro. Você poderá copiá-los e enviá-los diretamente pelo dashboard.
+          </div>
         </div>
       )}
 
