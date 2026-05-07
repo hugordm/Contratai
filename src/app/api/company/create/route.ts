@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     razaoSocial,
     cnpj,
     logoUrl,
+    urlEmpresa,
     cep,
     logradouro,
     numero,
@@ -23,6 +24,8 @@ export async function POST(req: NextRequest) {
     estado,
     perfilRitmo,
     contextoEmpresa,
+    desafiosInternos,
+    estiloLideranca,
     valores,
   } = body;
 
@@ -36,13 +39,33 @@ export async function POST(req: NextRequest) {
         perfilRitmo,
         contextoEmpresa,
         valores: valores || [],
+        contextoJson: {
+          desafiosInternos,
+          estiloLideranca,
+          urlEmpresa,
+        },
       },
     });
 
-    await prisma.user.update({
+    const existingUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      data: { companyId: company.id },
     });
+
+    if (existingUser) {
+      await prisma.user.update({
+        where: { email: session.user.email },
+        data: { companyId: company.id },
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          email: session.user.email,
+          nome: session.user.name || "",
+          name: session.user.name || "",
+          companyId: company.id,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, companyId: company.id });
   } catch (error) {

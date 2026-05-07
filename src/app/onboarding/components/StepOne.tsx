@@ -45,7 +45,7 @@ export default function StepOne({ data, onUpdate, onNext }: Props) {
             value={data.razaoSocial}
             onChange={(e) => onUpdate({ razaoSocial: e.target.value })}
             placeholder="Ex: Empresa Exemplo Ltda"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
           />
           {errors.razaoSocial && (
             <p className="text-red-500 text-xs mt-1">{errors.razaoSocial}</p>
@@ -61,11 +61,25 @@ export default function StepOne({ data, onUpdate, onNext }: Props) {
             value={data.cnpj}
             onChange={(e) => onUpdate({ cnpj: formatCNPJ(e.target.value) })}
             placeholder="00.000.000/0000-00"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
           />
           {errors.cnpj && (
             <p className="text-red-500 text-xs mt-1">{errors.cnpj}</p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            URL da empresa
+          </label>
+          <input
+            type="url"
+            value={data.urlEmpresa || ""}
+            onChange={(e) => onUpdate({ urlEmpresa: e.target.value })}
+            placeholder="https://suaempresa.com.br (opcional)"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
+          />
+          <p className="text-xs text-gray-400 mt-1">Usada pela IA para enriquecer o contexto da empresa</p>
         </div>
 
         <div>
@@ -77,7 +91,7 @@ export default function StepOne({ data, onUpdate, onNext }: Props) {
             value={data.logoUrl}
             onChange={(e) => onUpdate({ logoUrl: e.target.value })}
             placeholder="https://suaempresa.com/logo.png (opcional)"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
           />
           <p className="text-xs text-gray-400 mt-1">Cole a URL da logo ou deixe em branco por enquanto</p>
         </div>
@@ -85,8 +99,7 @@ export default function StepOne({ data, onUpdate, onNext }: Props) {
 
       <button
         onClick={() => validate() && onNext()}
-        className="w-full mt-8 bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition"
-      >
+        className="w-full mt-8 bg-[#4A5452] text-white py-3 rounded-lg font-medium hover:bg-[#597048] transition">
         Continuar →
       </button>
     </div>

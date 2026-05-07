@@ -57,7 +57,7 @@ export default function StepTwo({ data, onUpdate, onNext, onBack }: Props) {
                 if (v.length === 8) buscarCEP(v);
               }}
               placeholder="00000000"
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
             />
             {loading && (
               <div className="flex items-center px-4 text-sm text-gray-500">
@@ -75,7 +75,7 @@ export default function StepTwo({ data, onUpdate, onNext, onBack }: Props) {
             value={data.logradouro}
             onChange={(e) => onUpdate({ logradouro: e.target.value })}
             placeholder="Rua, Avenida..."
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
           />
         </div>
 
@@ -87,7 +87,7 @@ export default function StepTwo({ data, onUpdate, onNext, onBack }: Props) {
               value={data.numero}
               onChange={(e) => onUpdate({ numero: e.target.value })}
               placeholder="123"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
             />
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function StepTwo({ data, onUpdate, onNext, onBack }: Props) {
               value={data.estado}
               onChange={(e) => onUpdate({ estado: e.target.value })}
               placeholder="PE"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
             />
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function StepTwo({ data, onUpdate, onNext, onBack }: Props) {
             value={data.cidade}
             onChange={(e) => onUpdate({ cidade: e.target.value })}
             placeholder="Sua cidade"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
           />
           {errors.cidade && <p className="text-red-500 text-xs mt-1">{errors.cidade}</p>}
         </div>
@@ -124,7 +124,7 @@ export default function StepTwo({ data, onUpdate, onNext, onBack }: Props) {
         </button>
         <button
           onClick={() => validate() && onNext()}
-          className="flex-1 bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition"
+          className="flex-1 bg-[#4A5452] text-white py-3 rounded-lg font-medium hover:bg-[#597048] transition"
         >
           Continuar →
         </button>

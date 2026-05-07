@@ -49,6 +49,13 @@
 }
 
 :root {
+  --color-neon: #C4FF57;
+  --color-chumbo: #4A5452;
+  --color-floresta: #597048;
+  --color-kraft: #D6B48B;
+  --color-coral: #FF9E6E;
+  --color-offwhite: #F5F7F0;
+  --color-cinza: #8D9999;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

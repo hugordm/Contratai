@@ -3,7 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Company {
@@ -13,6 +15,7 @@ model Company {
   enderecoJson    Json?
   logoUrl         String?
   contextoEmpresa String?
+  contextoJson    Json?
   perfilRitmo     String?
   valores         String[]
   createdAt       DateTime @default(now())
@@ -86,7 +89,7 @@ model Candidate {
 model PersonalityResult {
   id            String   @id @default(cuid())
   companyId     String
-  subjectId     String
+  subjectId     String?
   subjectType   String
   discJson      Json?
   enneagramJson Json?
@@ -108,6 +111,8 @@ model MatchReport {
 
   job       Job       @relation(fields: [jobId], references: [id])
   candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@unique([jobId, candidateId])
 }
 
 model ChatMessage {

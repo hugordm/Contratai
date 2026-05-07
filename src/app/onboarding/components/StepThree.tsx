@@ -16,6 +16,13 @@ const perfis = [
   { id: "outro", label: "Outro", emoji: "💼" },
 ];
 
+const estilosLideranca = [
+  { id: "diretivo", label: "Diretivo", desc: "Toma decisões e delega execução" },
+  { id: "colaborativo", label: "Colaborativo", desc: "Decide em conjunto com o time" },
+  { id: "coaching", label: "Coaching", desc: "Desenvolve e mentora as pessoas" },
+  { id: "liberal", label: "Liberal", desc: "Dá autonomia total ao time" },
+];
+
 export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
@@ -23,7 +30,7 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
 
   const addValor = () => {
     if (!valorInput.trim()) return;
-    onUpdate({ valores: [...data.valores, valorInput.trim()] });
+    onUpdate({ valores: [...(data.valores || []), valorInput.trim()] });
     setValorInput("");
   };
 
@@ -64,10 +71,9 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
                 onClick={() => onUpdate({ perfilRitmo: p.id })}
                 className={`p-3 rounded-lg border text-left transition ${
                   data.perfilRitmo === p.id
-                    ? "border-black bg-gray-50"
-                    : "border-gray-200 hover:border-gray-400"
-                }`}
-              >
+                    ? "border-[#4A5452] bg-[#F5F7F0]"
+                    : "border-gray-200 hover:border-[#4A5452]"
+                }`}>
                 <span className="text-lg">{p.emoji}</span>
                 <p className="text-sm font-medium text-gray-700 mt-1">{p.label}</p>
               </button>
@@ -83,19 +89,53 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
             Descreva o momento atual da empresa *
           </label>
           <textarea
-            value={data.contextoEmpresa}
+            value={data.contextoEmpresa || ""}
             onChange={(e) => onUpdate({ contextoEmpresa: e.target.value })}
-            placeholder="Conte sobre os desafios atuais, cultura, objetivos, estilo de liderança..."
-            rows={5}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black resize-none"
+            placeholder="Conte sobre os desafios atuais, cultura, objetivos..."
+            rows={4}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452] resize-none"
           />
           <div className="flex justify-between mt-1">
             {errors.contextoEmpresa && (
               <p className="text-red-500 text-xs">{errors.contextoEmpresa}</p>
             )}
-            <p className={`text-xs ml-auto ${data.contextoEmpresa.length >= 100 ? "text-green-600" : "text-gray-400"}`}>
-              {data.contextoEmpresa.length}/100 caracteres mínimos
+            <p className={`text-xs ml-auto ${data.contextoEmpresa?.length >= 100 ? "text-green-600" : "text-gray-400"}`}>
+              {data.contextoEmpresa?.length || 0}/100 caracteres mínimos
             </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Principais desafios internos atualmente
+          </label>
+          <textarea
+            value={data.desafiosInternos || ""}
+            onChange={(e) => onUpdate({ desafiosInternos: e.target.value })}
+            placeholder="Ex: Reter talentos, escalar o time de tech, melhorar comunicação entre áreas..."
+            rows={3}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452] resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Estilo de liderança predominante
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {estilosLideranca.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => onUpdate({ estiloLideranca: e.id })}
+                className={`p-3 rounded-lg border text-left transition ${
+                  data.estiloLideranca === e.id
+                    ? "border-[#4A5452] bg-[#F5F7F0]"
+                    : "border-gray-200 hover:border-[#4A5452]"
+                }`}>
+                <p className="text-sm font-medium text-gray-700">{e.label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{e.desc}</p>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -110,22 +150,18 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
               onChange={(e) => setValorInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addValor()}
               placeholder="Ex: Inovação, Transparência..."
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A5452]"
             />
             <button
               onClick={addValor}
-              className="px-4 py-3 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
-            >
+              className="px-4 py-3 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
               + Adicionar
             </button>
           </div>
-          {data.valores.length > 0 && (
+          {data.valores?.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {data.valores.map((v: string, i: number) => (
-                <span
-                  key={i}
-                  className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                >
+                <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
                   {v}
                   <button onClick={() => removeValor(i)} className="text-gray-400 hover:text-red-500">×</button>
                 </span>
@@ -138,15 +174,13 @@ export default function StepThree({ data, onUpdate, onBack, onFinish }: Props) {
       <div className="flex gap-3 mt-8">
         <button
           onClick={onBack}
-          className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition"
-        >
+          className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition">
           ← Voltar
         </button>
         <button
           onClick={handleFinish}
           disabled={loading}
-          className="flex-1 bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50"
-        >
+          className="flex-1 bg-[#4A5452] text-white py-3 rounded-lg font-medium hover:bg-[#597048] transition disabled:opacity-50">
           {loading ? "Salvando..." : "Concluir →"}
         </button>
       </div>
