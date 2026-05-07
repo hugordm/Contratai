@@ -38,12 +38,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let subjectId: string | undefined = testLink.candidateId ?? undefined;
+  if (!subjectId && testLink.type === "employee") {
+    const node = await prisma.organogramaNode.findFirst({
+      where: { testLinkToken: token, companyId: testLink.companyId },
+      select: { id: true },
+    });
+    if (node) subjectId = node.id;
+  }
+
+  if (!subjectId) {
+    return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
+  }
+
   // Find existing PersonalityResult created by DISC submit
   const existing = await prisma.personalityResult.findFirst({
-    where: {
-      companyId: testLink.companyId,
-      ...(testLink.candidateId ? { subjectId: testLink.candidateId } : {}),
-    },
+    where: { companyId: testLink.companyId, subjectId },
     orderBy: { createdAt: "desc" },
   });
 

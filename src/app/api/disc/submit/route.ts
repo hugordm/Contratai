@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
 
   const disc = calculateDISC(answers);
 
+  let subjectId: string | undefined = testLink.candidateId ?? undefined;
   let subjectType = "anonymous";
   let nodeId: string | undefined;
 
@@ -68,13 +69,20 @@ export async function POST(req: NextRequest) {
       where: { testLinkToken: token, companyId: testLink.companyId },
       select: { id: true },
     });
-    if (node) nodeId = node.id;
+    if (node) {
+      nodeId = node.id;
+      subjectId = node.id;
+    }
+  }
+
+  if (!subjectId) {
+    return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
   }
 
   const result = await prisma.personalityResult.create({
     data: {
       companyId: testLink.companyId,
-      subjectId: testLink.candidateId ?? undefined,
+      subjectId,
       subjectType,
       nodeId,
       discJson: {
