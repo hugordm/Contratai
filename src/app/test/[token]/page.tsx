@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import DiscTestClient from "./DiscTestClient";
 import EnneagramClient from "./EnneagramClient";
 import MBTIClient from "./MBTIClient";
@@ -95,6 +95,12 @@ export default async function TestPage({ params }: Props) {
 
   const discDone = !!existingResult?.discJson;
   const ennDone = !!existingResult?.enneagramJson;
+  const mbtiDone = !!existingResult?.mbtiJson;
+
+  if (discDone && ennDone && mbtiDone) {
+    redirect(`/test/${token}/result`);
+  }
+
   const step: Step = !discDone ? 1 : !ennDone ? 2 : 3;
 
   return (

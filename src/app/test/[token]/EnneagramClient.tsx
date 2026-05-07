@@ -54,7 +54,7 @@ export default function EnneagramClient({ token }: Props) {
         setLoading(false);
         return;
       }
-      router.push(`/test/${token}/result`);
+      router.push(`/test/${token}`);
     } catch {
       setError("Erro de conexão. Tente novamente.");
       setLoading(false);
