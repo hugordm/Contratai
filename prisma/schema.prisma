@@ -80,11 +80,10 @@ model Candidate {
   testCompletedAt DateTime?
   createdAt       DateTime  @default(now())
 
-  job                Job                 @relation(fields: [jobId], references: [id])
-  company            Company             @relation(fields: [companyId], references: [id])
-  personalityResults PersonalityResult[]
-  matchReports       MatchReport[]
-  testLinks          TestLink[]
+  job          Job           @relation(fields: [jobId], references: [id])
+  company      Company       @relation(fields: [companyId], references: [id])
+  matchReports MatchReport[]
+  testLinks    TestLink[]
 }
 
 model PersonalityResult {
@@ -98,8 +97,7 @@ model PersonalityResult {
   mbtiJson      Json?
   createdAt     DateTime @default(now())
 
-  company   Company    @relation(fields: [companyId], references: [id])
-  candidate Candidate? @relation(fields: [subjectId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 model MatchReport {
