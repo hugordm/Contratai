@@ -349,7 +349,7 @@ export default function ColaboradoresClient({ initialColaboradores }: Props) {
                           disabled={generatingLink === c.id}
                           className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition disabled:opacity-50"
                         >
-                          {generatingLink === c.id ? "Gerando..." : "Reenviar"}
+                          {generatingLink === c.id ? "Enviando..." : "Enviar link"}
                         </button>
                       )}
                     </>
