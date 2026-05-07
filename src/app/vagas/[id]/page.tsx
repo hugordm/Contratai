@@ -28,6 +28,22 @@ export default async function VagaPage({ params, searchParams }: Props) {
 
   if (!job) return notFound();
 
+  const primaryLiderId: string | null =
+    job.liderId ??
+    (Array.isArray(job.lideresJson) ? (job.lideresJson as string[])[0] : null) ??
+    null;
+
+  let liderNome: string | null = null;
+  if (primaryLiderId) {
+    const leaderNode = await prisma.organogramaNode.findFirst({
+      where: { id: primaryLiderId },
+      select: { nome: true, cargo: true },
+    });
+    if (leaderNode) {
+      liderNome = `${leaderNode.nome} — ${leaderNode.cargo}`;
+    }
+  }
+
   const dbCandidates = await prisma.candidate.findMany({
     where: { jobId: id, companyId: user.companyId },
     orderBy: { createdAt: "desc" },
@@ -98,6 +114,7 @@ export default async function VagaPage({ params, searchParams }: Props) {
           initialJd={initialJd}
           initialCandidates={initialCandidates}
           criouComIA={criouComIA}
+          liderNome={liderNome}
         />
       </main>
     </>

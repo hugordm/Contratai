@@ -36,6 +36,7 @@ interface Props {
   initialJd: JDResult | null;
   initialCandidates: CandidateItem[];
   criouComIA: boolean;
+  liderNome?: string | null;
 }
 
 const MOTIVO_LABELS: Record<string, string> = {
@@ -63,6 +64,7 @@ export default function VagaClient({
   initialJd,
   initialCandidates,
   criouComIA,
+  liderNome,
 }: Props) {
   const router = useRouter();
 
@@ -335,13 +337,32 @@ export default function VagaClient({
         )}
 
         {jobMetas && (
-          <div>
+          <div className="mb-5">
             <h2 className="text-sm font-semibold text-[#4A5452] uppercase tracking-wide mb-2">
               Metas e objetivos
             </h2>
             <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{jobMetas}</p>
           </div>
         )}
+
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[#4A5452] uppercase tracking-wide">
+              Líder direto
+            </span>
+            {liderNome ? (
+              <span className="text-sm text-gray-700 font-medium">{liderNome}</span>
+            ) : (
+              <span className="text-sm text-gray-400 italic">Não selecionado</span>
+            )}
+          </div>
+          <Link
+            href={`/vagas/${jobId}/editar`}
+            className="text-xs text-gray-500 hover:text-[#4A5452] transition underline"
+          >
+            {liderNome ? "Alterar" : "Selecionar líder"}
+          </Link>
+        </div>
       </div>
 
       {/* Seção IA */}
