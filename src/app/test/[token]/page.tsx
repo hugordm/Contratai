@@ -52,14 +52,18 @@ export default async function TestPage({ params }: Props) {
   const companyName = testLink.company.razaoSocial;
   const logoUrl = testLink.company.logoUrl ?? null;
 
-  // Candidate name: from Candidate record, or from OrganogramaNode for employee links
+  // Resolve employee node (used for both name and subjectId lookup)
   let candidateName: string | null = testLink.candidate?.nome ?? null;
-  if (!candidateName && testLink.type === "employee") {
-    const node = await prisma.organogramaNode.findFirst({
+  let employeeSubjectId: string | null = null;
+  if (testLink.type === "employee") {
+    const node = await prisma.organogramaNode.findUnique({
       where: { testLinkToken: token },
-      select: { nome: true },
+      select: { id: true, nome: true, companyId: true },
     });
-    candidateName = node?.nome ?? null;
+    if (node && node.companyId === testLink.companyId) {
+      candidateName = candidateName ?? node.nome;
+      employeeSubjectId = node.id;
+    }
   }
 
   if (testLink.completedAt) {
@@ -100,18 +104,30 @@ export default async function TestPage({ params }: Props) {
     );
   }
 
-  const existingResult = await prisma.personalityResult.findFirst({
-    where: {
-      companyId: testLink.companyId,
-      ...(testLink.candidateId ? { subjectId: testLink.candidateId } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // Determine subjectId for the PersonalityResult lookup
+  let subjectId: string | null = null;
+  let subjectType: string | null = null;
+  if (testLink.candidateId) {
+    subjectId = testLink.candidateId;
+    subjectType = "candidate";
+  } else if (testLink.type === "employee" && employeeSubjectId) {
+    subjectId = employeeSubjectId;
+    subjectType = "employee";
+  }
+
+  // Only search for an existing result if we have a valid, specific subjectId
+  const existingResult = subjectId
+    ? await prisma.personalityResult.findFirst({
+        where: { companyId: testLink.companyId, subjectId, subjectType: subjectType! },
+        orderBy: { createdAt: "desc" },
+      })
+    : null;
 
   const discDone = !!existingResult?.discJson;
   const ennDone = !!existingResult?.enneagramJson;
   const mbtiDone = !!existingResult?.mbtiJson;
 
+  // Only redirect to result when all three tests are truly complete
   if (discDone && ennDone && mbtiDone) {
     redirect(`/test/${token}/result`);
   }
