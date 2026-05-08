@@ -103,59 +103,62 @@ export async function POST(req: NextRequest) {
       });
 
       if (candidate) {
-        const disc = existing.discJson as any;
-        const enn = existing.enneagramJson as any;
-        const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-        const resultUrl = `${baseUrl}/test/${testLink.token}/result`;
+        const disc = updated.discJson as any;
+        const enn = updated.enneagramJson as any;
 
-        // Generate PDF
-        let pdfBuffer: Buffer | null = null;
-        try {
-          pdfBuffer = await renderToBuffer(
-            React.createElement(ResultadoPDF, {
-              candidateName: candidate.nome,
-              companyName: candidate.company.razaoSocial,
-              disc: { dominant: disc.dominant, percentages: disc.percentages ?? {} },
-              enneagram: enn ? { dominant: enn.dominant, wing: enn.wing, scores: enn.scores ?? {} } : null,
-              mbti: { type: mbti.type, percentages: mbti.percentages },
-              createdAt: new Date(),
-            }) as any
-          );
-        } catch {
-          // PDF failure is non-fatal
-        }
+        if (disc && enn && updated.mbtiJson) {
+          const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+          const resultUrl = `${baseUrl}/test/${testLink.token}/result`;
 
-        const hrEmail = candidate.company?.users?.[0]?.email;
-
-        // Email to HR
-        if (hrEmail) {
-          await resend.emails.send({
-            from: "Contratai <noreply@pirulitodocorte.xyz>",
-            to: hrEmail,
-            subject: `✅ Avaliação completa — ${candidate.nome} (DISC + Eneagrama + 16P)`,
-            html: buildHrEmail(candidate.nome, candidate.job.titulo, resultUrl),
-          }).catch(() => {});
-        }
-
-        // Email to candidate with PDF
-        if (candidate.email) {
-          const emailPayload: Parameters<typeof resend.emails.send>[0] = {
-            from: "Contratai <noreply@pirulitodocorte.xyz>",
-            to: candidate.email,
-            subject: `Seu resultado de avaliação comportamental — ${candidate.job.titulo}`,
-            html: buildCandidateEmail(candidate.nome, candidate.company.razaoSocial, resultUrl),
-          };
-
-          if (pdfBuffer) {
-            emailPayload.attachments = [
-              {
-                filename: "resultado-comportamental.pdf",
-                content: pdfBuffer,
-              },
-            ];
+          // Generate PDF
+          let pdfBuffer: Buffer | null = null;
+          try {
+            pdfBuffer = await renderToBuffer(
+              React.createElement(ResultadoPDF, {
+                candidateName: candidate.nome,
+                companyName: candidate.company.razaoSocial,
+                disc: { dominant: disc.dominant, percentages: disc.percentages ?? {} },
+                enneagram: { dominant: enn.dominant, wing: enn.wing, scores: enn.scores ?? {} },
+                mbti: { type: mbti.type, percentages: mbti.percentages },
+                createdAt: new Date(),
+              }) as any
+            );
+          } catch (err) {
+            console.error("[mbti/submit] Erro ao gerar PDF:", err);
           }
 
-          await resend.emails.send(emailPayload).catch(() => {});
+          const hrEmail = candidate.company?.users?.[0]?.email;
+
+          // Email to HR
+          if (hrEmail) {
+            await resend.emails.send({
+              from: "Contratai <noreply@pirulitodocorte.xyz>",
+              to: hrEmail,
+              subject: `✅ Avaliação completa — ${candidate.nome} (DISC + Eneagrama + 16P)`,
+              html: buildHrEmail(candidate.nome, candidate.job.titulo, resultUrl),
+            }).catch((err) => { console.error("[mbti/submit] Erro ao enviar e-mail RH:", err); });
+          }
+
+          // Email to candidate with PDF
+          if (candidate.email) {
+            const emailPayload: Parameters<typeof resend.emails.send>[0] = {
+              from: "Contratai <noreply@pirulitodocorte.xyz>",
+              to: candidate.email,
+              subject: `[${candidate.company.razaoSocial}] — Seus resultados de perfil comportamental`,
+              html: buildCandidateEmail(candidate.nome, candidate.company.razaoSocial, resultUrl),
+            };
+
+            if (pdfBuffer) {
+              emailPayload.attachments = [
+                {
+                  filename: "resultado-comportamental.pdf",
+                  content: pdfBuffer,
+                },
+              ];
+            }
+
+            await resend.emails.send(emailPayload).catch((err) => { console.error("[mbti/submit] Erro ao enviar e-mail candidato:", err); });
+          }
         }
       }
     } catch {
