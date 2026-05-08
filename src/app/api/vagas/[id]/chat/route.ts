@@ -50,7 +50,6 @@ export async function POST(
       company: true,
       candidates: {
         include: {
-          personalityResults: { orderBy: { createdAt: "desc" }, take: 1 },
           matchReports: { orderBy: { rankingPosition: "asc" }, take: 1 },
         },
       },
@@ -59,6 +58,23 @@ export async function POST(
 
   if (!job) {
     return NextResponse.json({ error: "Vaga não encontrada" }, { status: 404 });
+  }
+
+  const candidatePrMap = new Map<string, any>();
+  if (job.candidates.length > 0) {
+    const prs = await prisma.personalityResult.findMany({
+      where: {
+        companyId: user.companyId,
+        subjectType: "candidate",
+        subjectId: { in: job.candidates.map((c) => c.id) },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    for (const pr of prs) {
+      if (pr.subjectId && !candidatePrMap.has(pr.subjectId)) {
+        candidatePrMap.set(pr.subjectId, pr);
+      }
+    }
   }
 
   await prisma.chatMessage.create({
@@ -80,8 +96,8 @@ export async function POST(
   const ctx = company.contextoJson as any;
 
   const candidatesSummary = job.candidates
-    .map((c: any) => {
-      const disc = c.personalityResults[0]?.discJson as any;
+    .map((c) => {
+      const disc = (candidatePrMap.get(c.id)?.discJson) as any;
       const match = c.matchReports[0];
       const relatorio = match?.relatorioJson as any;
       let summary = `- ${c.nome} (${c.email})`;

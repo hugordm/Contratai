@@ -44,15 +44,18 @@ export default async function MatchPage({ params }: Props) {
     select: { id: true, nome: true, email: true },
   });
 
-  const candidatesWithDisc = await prisma.candidate.findMany({
-    where: {
-      jobId,
-      companyId: user.companyId,
-      personalityResults: { some: {} },
-    },
-    select: { id: true },
-  });
-  const discCompletedIds = new Set(candidatesWithDisc.map((c: any) => c.id));
+  const candidateIds = candidates.map((c) => c.id);
+  const prsForDisc = candidateIds.length > 0
+    ? await prisma.personalityResult.findMany({
+        where: {
+          companyId: user.companyId,
+          subjectType: "candidate",
+          subjectId: { in: candidateIds },
+        },
+        select: { subjectId: true },
+      })
+    : [];
+  const discCompletedIds = new Set(prsForDisc.map((pr) => pr.subjectId).filter(Boolean));
 
   const reports = await prisma.matchReport.findMany({
     where: { jobId, job: { companyId: user.companyId } },

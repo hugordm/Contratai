@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
         // Email to HR
         if (hrEmail) {
           await resend.emails.send({
-            from: process.env.FROM_EMAIL ?? "onboarding@resend.dev",
+            from: "Contratai <noreply@pirulitodocorte.xyz>",
             to: hrEmail,
             subject: `✅ Avaliação completa — ${candidate.nome} (DISC + Eneagrama + 16P)`,
             html: buildHrEmail(candidate.nome, candidate.job.titulo, resultUrl),
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         // Email to candidate with PDF
         if (candidate.email) {
           const emailPayload: Parameters<typeof resend.emails.send>[0] = {
-            from: process.env.FROM_EMAIL ?? "onboarding@resend.dev",
+            from: "Contratai <noreply@pirulitodocorte.xyz>",
             to: candidate.email,
             subject: `Seu resultado de avaliação comportamental — ${candidate.job.titulo}`,
             html: buildCandidateEmail(candidate.nome, candidate.company.razaoSocial, resultUrl),

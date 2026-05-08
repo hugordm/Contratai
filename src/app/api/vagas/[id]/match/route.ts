@@ -125,15 +125,27 @@ export async function POST(
 
   const candidates = await prisma.candidate.findMany({
     where: { jobId, companyId: user.companyId },
-    include: {
-      personalityResults: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-    },
   });
 
-  const withDisc = candidates.filter((c: any) => c.personalityResults.length > 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prMap = new Map<string, any>();
+  if (candidates.length > 0) {
+    const prs = await prisma.personalityResult.findMany({
+      where: {
+        companyId: user.companyId,
+        subjectType: "candidate",
+        subjectId: { in: candidates.map((c) => c.id) },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    for (const pr of prs) {
+      if (pr.subjectId && !prMap.has(pr.subjectId)) {
+        prMap.set(pr.subjectId, pr);
+      }
+    }
+  }
+
+  const withDisc = candidates.filter((c) => prMap.has(c.id));
 
   if (withDisc.length === 0) {
     return NextResponse.json(
@@ -208,18 +220,19 @@ VAGA:
   let results: any[];
   try {
     results = await Promise.all(
-      withDisc.map((c: any) =>
-        analyzeCandidate(
+      withDisc.map((c) => {
+        const pr = prMap.get(c.id);
+        return analyzeCandidate(
           c.id,
           c.nome,
-          c.personalityResults[0].discJson,
-          c.personalityResults[0].enneagramJson,
-          c.personalityResults[0].mbtiJson,
+          pr.discJson,
+          pr.enneagramJson,
+          pr.mbtiJson,
           jobContext,
           leadersContext,
           !!leadersContext
-        ).catch(() => null)
-      )
+        ).catch(() => null);
+      })
     );
     results = results.filter(Boolean);
   } catch {
