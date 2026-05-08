@@ -10,28 +10,65 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const body = await req.json();
-
-  const {
-    razaoSocial,
-    cnpj,
-    logoUrl,
-    urlEmpresa,
-    cep,
-    logradouro,
-    numero,
-    cidade,
-    estado,
-    perfilRitmo,
-    contextoEmpresa,
-    desafiosInternos,
-    estiloLideranca,
-    valores,
-    colaboradores = [],
-    testOption = "",
-  } = body;
-
   try {
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Corpo da requisição inválido (JSON malformado)" }, { status: 400 });
+    }
+
+    const {
+      razaoSocial,
+      cnpj,
+      logoUrl,
+      urlEmpresa,
+      cep,
+      logradouro,
+      numero,
+      cidade,
+      estado,
+      perfilRitmo,
+      contextoEmpresa,
+      desafiosInternos,
+      estiloLideranca,
+      valores,
+      colaboradores = [],
+      testOption = "",
+    } = body as {
+      razaoSocial?: string;
+      cnpj?: string;
+      logoUrl?: string;
+      urlEmpresa?: string;
+      cep?: string;
+      logradouro?: string;
+      numero?: string;
+      cidade?: string;
+      estado?: string;
+      perfilRitmo?: string;
+      contextoEmpresa?: string;
+      desafiosInternos?: string;
+      estiloLideranca?: string;
+      valores?: string[];
+      colaboradores?: Array<{
+        id: string;
+        nome: string;
+        cargo: string;
+        departamento?: string;
+        email?: string;
+        token: string;
+        resultados?: string;
+      }>;
+      testOption?: string;
+    };
+
+    if (!razaoSocial?.trim()) {
+      return NextResponse.json({ error: "Razão social é obrigatória" }, { status: 400 });
+    }
+    if (!cnpj?.trim()) {
+      return NextResponse.json({ error: "CNPJ é obrigatório" }, { status: 400 });
+    }
+
     const company = await prisma.company.create({
       data: {
         razaoSocial,
@@ -70,20 +107,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Save organograma nodes and generate test links
-    if (colaboradores.length > 0) {
-      const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    if ((colaboradores as unknown[]).length > 0) {
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 60); // 60 days for team links
+      expiresAt.setDate(expiresAt.getDate() + 60);
 
-      for (const c of colaboradores as Array<{
-        id: string;
-        nome: string;
-        cargo: string;
-        departamento?: string;
-        email?: string;
-        token: string;
-        resultados?: string;
-      }>) {
+      for (const c of colaboradores) {
         const testLinkToken = testOption === "nao_tenho" ? c.token : null;
 
         await prisma.organogramaNode.create({
@@ -113,7 +141,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, companyId: company.id });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Erro ao salvar" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[company/create] Erro:", message, error);
+    return NextResponse.json(
+      { error: "Erro ao criar empresa", detail: message },
+      { status: 500 }
+    );
   }
 }

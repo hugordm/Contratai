@@ -7,166 +7,172 @@ import { ResultadoPDF } from "@/lib/pdf/resultadoPDF";
 import React from "react";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { token, answers } = body as {
-    token: string;
-    answers: Record<number, number>;
-  };
+  let body: { token?: string; answers?: Record<number, number> };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
+  }
+
+  const { token, answers } = body;
 
   if (!token || !answers) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
-  const testLink = await prisma.testLink.findUnique({
-    where: { token },
-    include: { candidate: true },
-  });
-
-  if (!testLink) {
-    return NextResponse.json({ error: "Link inválido" }, { status: 404 });
-  }
-
-  if (testLink.completedAt) {
-    return NextResponse.json({ error: "Teste já finalizado" }, { status: 409 });
-  }
-
-  if (testLink.expiresAt < new Date()) {
-    return NextResponse.json({ error: "Link expirado" }, { status: 410 });
-  }
-
-  const answeredCount = Object.keys(answers).length;
-  if (answeredCount < 60) {
-    return NextResponse.json(
-      { error: `Responda todas as perguntas (${answeredCount}/60)` },
-      { status: 400 }
-    );
-  }
-
-  let subjectId: string;
-  let subjectType: string;
-  const companyId = testLink.companyId;
-
-  if (testLink.candidateId) {
-    subjectId = testLink.candidateId;
-    subjectType = "candidate";
-  } else if (testLink.type === "employee") {
-    const node = await prisma.organogramaNode.findUnique({
-      where: { testLinkToken: token },
-      select: { id: true, companyId: true },
+  try {
+    const testLink = await prisma.testLink.findUnique({
+      where: { token },
+      include: { candidate: true },
     });
-    if (!node || node.companyId !== companyId) {
+
+    if (!testLink) {
+      return NextResponse.json({ error: "Link inválido" }, { status: 404 });
+    }
+
+    if (testLink.completedAt) {
+      return NextResponse.json({ error: "Teste já finalizado" }, { status: 409 });
+    }
+
+    if (testLink.expiresAt < new Date()) {
+      return NextResponse.json({ error: "Link expirado" }, { status: 410 });
+    }
+
+    const answeredCount = Object.keys(answers).length;
+    if (answeredCount < 60) {
+      return NextResponse.json(
+        { error: `Responda todas as perguntas (${answeredCount}/60)` },
+        { status: 400 }
+      );
+    }
+
+    let subjectId: string;
+    let subjectType: string;
+    const companyId = testLink.companyId;
+
+    if (testLink.candidateId) {
+      subjectId = testLink.candidateId;
+      subjectType = "candidate";
+    } else if (testLink.type === "employee") {
+      const node = await prisma.organogramaNode.findUnique({
+        where: { testLinkToken: token },
+        select: { id: true, companyId: true },
+      });
+      if (!node || node.companyId !== companyId) {
+        return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
+      }
+      subjectId = node.id;
+      subjectType = "employee";
+    } else {
       return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
     }
-    subjectId = node.id;
-    subjectType = "employee";
-  } else {
-    return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
-  }
 
-  const existing = await prisma.personalityResult.findFirst({
-    where: { companyId, subjectId, subjectType },
-    orderBy: { createdAt: "desc" },
-  });
+    const existing = await prisma.personalityResult.findFirst({
+      where: { companyId, subjectId, subjectType },
+      orderBy: { createdAt: "desc" },
+    });
 
-  if (!existing || !existing.enneagramJson) {
-    return NextResponse.json(
-      { error: "Complete o Eneagrama antes das 16 Personalidades" },
-      { status: 422 }
-    );
-  }
+    if (!existing || !existing.enneagramJson) {
+      return NextResponse.json(
+        { error: "Complete o Eneagrama antes das 16 Personalidades" },
+        { status: 422 }
+      );
+    }
 
-  const mbti = calculateMBTI(answers);
+    const mbti = calculateMBTI(answers);
 
-  const updated = await prisma.personalityResult.update({
-    where: { id: existing.id },
-    data: { mbtiJson: mbti as object },
-  });
+    const updated = await prisma.personalityResult.update({
+      where: { id: existing.id },
+      data: { mbtiJson: mbti as object },
+    });
 
-  await prisma.testLink.update({
-    where: { id: testLink.id },
-    data: { completedAt: new Date() },
-  });
+    await prisma.testLink.update({
+      where: { id: testLink.id },
+      data: { completedAt: new Date() },
+    });
 
-  if (testLink.candidateId) {
-    try {
-      const candidate = await prisma.candidate.findUnique({
-        where: { id: testLink.candidateId },
-        include: {
-          job: true,
-          company: { include: { users: { select: { email: true }, take: 1 } } },
-        },
-      });
+    if (testLink.candidateId) {
+      try {
+        const candidate = await prisma.candidate.findUnique({
+          where: { id: testLink.candidateId },
+          include: {
+            job: true,
+            company: { include: { users: { select: { email: true }, take: 1 } } },
+          },
+        });
 
-      await prisma.candidate.update({
-        where: { id: testLink.candidateId },
-        data: { testCompletedAt: new Date() },
-      });
+        await prisma.candidate.update({
+          where: { id: testLink.candidateId },
+          data: { testCompletedAt: new Date() },
+        });
 
-      if (candidate) {
-        const disc = updated.discJson as any;
-        const enn = updated.enneagramJson as any;
+        if (candidate) {
+          const disc = updated.discJson as any;
+          const enn = updated.enneagramJson as any;
 
-        if (disc && enn && updated.mbtiJson) {
-          const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-          const resultUrl = `${baseUrl}/test/${testLink.token}/result`;
+          if (disc && enn && updated.mbtiJson) {
+            const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+            const resultUrl = `${baseUrl}/test/${testLink.token}/result`;
 
-          // Generate PDF
-          let pdfBuffer: Buffer | null = null;
-          try {
-            pdfBuffer = await renderToBuffer(
-              React.createElement(ResultadoPDF, {
-                candidateName: candidate.nome,
-                companyName: candidate.company.razaoSocial,
-                disc: { dominant: disc.dominant, percentages: disc.percentages ?? {} },
-                enneagram: { dominant: enn.dominant, wing: enn.wing, scores: enn.scores ?? {} },
-                mbti: { type: mbti.type, percentages: mbti.percentages },
-                createdAt: new Date(),
-              }) as any
-            );
-          } catch (err) {
-            console.error("[mbti/submit] Erro ao gerar PDF:", err);
-          }
-
-          const hrEmail = candidate.company?.users?.[0]?.email;
-
-          // Email to HR
-          if (hrEmail) {
-            await resend.emails.send({
-              from: "Contratai <noreply@pirulitodocorte.xyz>",
-              to: hrEmail,
-              subject: `✅ Avaliação completa — ${candidate.nome} (DISC + Eneagrama + 16P)`,
-              html: buildHrEmail(candidate.nome, candidate.job.titulo, resultUrl),
-            }).catch((err) => { console.error("[mbti/submit] Erro ao enviar e-mail RH:", err); });
-          }
-
-          // Email to candidate with PDF
-          if (candidate.email) {
-            const emailPayload: Parameters<typeof resend.emails.send>[0] = {
-              from: "Contratai <noreply@pirulitodocorte.xyz>",
-              to: candidate.email,
-              subject: `[${candidate.company.razaoSocial}] — Seus resultados de perfil comportamental`,
-              html: buildCandidateEmail(candidate.nome, candidate.company.razaoSocial, resultUrl),
-            };
-
-            if (pdfBuffer) {
-              emailPayload.attachments = [
-                {
-                  filename: "resultado-comportamental.pdf",
-                  content: pdfBuffer,
-                },
-              ];
+            let pdfBuffer: Buffer | null = null;
+            try {
+              pdfBuffer = await renderToBuffer(
+                React.createElement(ResultadoPDF, {
+                  candidateName: candidate.nome,
+                  companyName: candidate.company.razaoSocial,
+                  disc: { dominant: disc.dominant, percentages: disc.percentages ?? {} },
+                  enneagram: { dominant: enn.dominant, wing: enn.wing, scores: enn.scores ?? {} },
+                  mbti: { type: mbti.type, percentages: mbti.percentages },
+                  createdAt: new Date(),
+                }) as any
+              );
+            } catch (err) {
+              console.error("[mbti/submit] Erro ao gerar PDF:", err);
             }
 
-            await resend.emails.send(emailPayload).catch((err) => { console.error("[mbti/submit] Erro ao enviar e-mail candidato:", err); });
+            const hrEmail = candidate.company?.users?.[0]?.email;
+
+            if (hrEmail) {
+              await resend.emails.send({
+                from: "Contratai <noreply@pirulitodocorte.xyz>",
+                to: hrEmail,
+                subject: `✅ Avaliação completa — ${candidate.nome} (DISC + Eneagrama + 16P)`,
+                html: buildHrEmail(candidate.nome, candidate.job.titulo, resultUrl),
+              }).catch((err) => { console.error("[mbti/submit] Erro ao enviar e-mail RH:", err); });
+            }
+
+            if (candidate.email) {
+              const emailPayload: Parameters<typeof resend.emails.send>[0] = {
+                from: "Contratai <noreply@pirulitodocorte.xyz>",
+                to: candidate.email,
+                subject: `[${candidate.company.razaoSocial}] — Seus resultados de perfil comportamental`,
+                html: buildCandidateEmail(candidate.nome, candidate.company.razaoSocial, resultUrl),
+              };
+
+              if (pdfBuffer) {
+                emailPayload.attachments = [
+                  {
+                    filename: "resultado-comportamental.pdf",
+                    content: pdfBuffer,
+                  },
+                ];
+              }
+
+              await resend.emails.send(emailPayload).catch((err) => { console.error("[mbti/submit] Erro ao enviar e-mail candidato:", err); });
+            }
           }
         }
+      } catch (emailErr) {
+        console.error("[mbti/submit] Erro no pós-processamento de e-mails:", emailErr);
       }
-    } catch {
-      // Silently ignore to not break submission
     }
-  }
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[mbti/submit] Erro:", message, error);
+    return NextResponse.json({ error: "Erro ao salvar resultado MBTI", detail: message }, { status: 500 });
+  }
 }
 
 function buildHrEmail(nome: string, cargo: string, resultUrl: string) {

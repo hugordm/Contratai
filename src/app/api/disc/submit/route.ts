@@ -20,79 +20,88 @@ function calculateDISC(answers: Record<number, DiscType>) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { token, answers } = body as {
-    token: string;
-    answers: Record<number, DiscType>;
-  };
+  let body: { token?: string; answers?: Record<number, DiscType> };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Corpo da requisição inválido" }, { status: 400 });
+  }
+
+  const { token, answers } = body;
 
   if (!token || !answers) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
-  const testLink = await prisma.testLink.findUnique({
-    where: { token },
-    include: { candidate: true },
-  });
-
-  if (!testLink) {
-    return NextResponse.json({ error: "Link inválido" }, { status: 404 });
-  }
-
-  if (testLink.completedAt) {
-    return NextResponse.json({ error: "Teste já realizado" }, { status: 409 });
-  }
-
-  if (testLink.expiresAt < new Date()) {
-    return NextResponse.json({ error: "Link expirado" }, { status: 410 });
-  }
-
-  const answeredCount = Object.keys(answers).length;
-  if (answeredCount < 28) {
-    return NextResponse.json(
-      { error: `Responda todas as perguntas (${answeredCount}/28)` },
-      { status: 400 }
-    );
-  }
-
-  const disc = calculateDISC(answers);
-
-  let subjectId: string;
-  let subjectType: string;
-  let nodeId: string | undefined;
-  const companyId = testLink.companyId;
-
-  if (testLink.candidateId) {
-    subjectId = testLink.candidateId;
-    subjectType = "candidate";
-  } else if (testLink.type === "employee") {
-    const node = await prisma.organogramaNode.findUnique({
-      where: { testLinkToken: token },
-      select: { id: true, companyId: true },
+  try {
+    const testLink = await prisma.testLink.findUnique({
+      where: { token },
+      include: { candidate: true },
     });
-    if (!node || node.companyId !== companyId) {
+
+    if (!testLink) {
+      return NextResponse.json({ error: "Link inválido" }, { status: 404 });
+    }
+
+    if (testLink.completedAt) {
+      return NextResponse.json({ error: "Teste já realizado" }, { status: 409 });
+    }
+
+    if (testLink.expiresAt < new Date()) {
+      return NextResponse.json({ error: "Link expirado" }, { status: 410 });
+    }
+
+    const answeredCount = Object.keys(answers).length;
+    if (answeredCount < 28) {
+      return NextResponse.json(
+        { error: `Responda todas as perguntas (${answeredCount}/28)` },
+        { status: 400 }
+      );
+    }
+
+    const disc = calculateDISC(answers);
+
+    let subjectId: string;
+    let subjectType: string;
+    let nodeId: string | undefined;
+    const companyId = testLink.companyId;
+
+    if (testLink.candidateId) {
+      subjectId = testLink.candidateId;
+      subjectType = "candidate";
+    } else if (testLink.type === "employee") {
+      const node = await prisma.organogramaNode.findUnique({
+        where: { testLinkToken: token },
+        select: { id: true, companyId: true },
+      });
+      if (!node || node.companyId !== companyId) {
+        return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
+      }
+      subjectId = node.id;
+      subjectType = "employee";
+      nodeId = node.id;
+    } else {
       return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
     }
-    subjectId = node.id;
-    subjectType = "employee";
-    nodeId = node.id;
-  } else {
-    return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
-  }
 
-  const result = await prisma.personalityResult.create({
-    data: {
-      companyId,
-      subjectId,
-      subjectType,
-      nodeId,
-      discJson: {
-        ...disc,
-        answers,
+    const result = await prisma.personalityResult.create({
+      data: {
+        companyId,
+        subjectId,
+        subjectType,
+        nodeId,
+        discJson: {
+          ...disc,
+          answers,
+        },
       },
-    },
-  });
+    });
 
-  // completedAt is set by enneagram/submit (final step)
-  return NextResponse.json({ resultId: result.id });
+    // completedAt is set by mbti/submit (final step)
+    return NextResponse.json({ resultId: result.id });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[disc/submit] Erro:", message, error);
+    return NextResponse.json({ error: "Erro ao salvar resultado DISC", detail: message }, { status: 500 });
+  }
 }
