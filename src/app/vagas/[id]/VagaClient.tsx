@@ -128,7 +128,14 @@ export default function VagaClient({
       }
       const c = await res.json();
       setCandidates((prev) => [
-        { id: c.id, nome: c.nome, email: c.email, linkedinUrl: c.linkedinUrl, testStatus: "none", testToken: null },
+        {
+          id: c.id,
+          nome: c.nome,
+          email: c.email,
+          linkedinUrl: c.linkedinUrl,
+          testStatus: c.testToken ? "pending" : "none",
+          testToken: c.testToken ?? null,
+        },
         ...prev,
       ]);
       setForm({ nome: "", email: "", linkedinUrl: "" });

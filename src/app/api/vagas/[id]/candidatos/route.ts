@@ -44,7 +44,18 @@ export async function POST(
     },
   });
 
-  return NextResponse.json(candidate);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+  const testLink = await prisma.testLink.create({
+    data: {
+      companyId: user.companyId,
+      candidateId: candidate.id,
+      expiresAt,
+      type: "candidate",
+    },
+  });
+
+  return NextResponse.json({ ...candidate, testToken: testLink.token });
 }
 
 export async function GET(

@@ -57,31 +57,32 @@ export async function POST(req: NextRequest) {
 
   const disc = calculateDISC(answers);
 
-  let subjectId: string | undefined = testLink.candidateId ?? undefined;
-  let subjectType = "anonymous";
+  let subjectId: string;
+  let subjectType: string;
   let nodeId: string | undefined;
+  const companyId = testLink.companyId;
 
   if (testLink.candidateId) {
+    subjectId = testLink.candidateId;
     subjectType = "candidate";
   } else if (testLink.type === "employee") {
-    subjectType = "employee";
-    const node = await prisma.organogramaNode.findFirst({
-      where: { testLinkToken: token, companyId: testLink.companyId },
-      select: { id: true },
+    const node = await prisma.organogramaNode.findUnique({
+      where: { testLinkToken: token },
+      select: { id: true, companyId: true },
     });
-    if (node) {
-      nodeId = node.id;
-      subjectId = node.id;
+    if (!node || node.companyId !== companyId) {
+      return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
     }
-  }
-
-  if (!subjectId) {
+    subjectId = node.id;
+    subjectType = "employee";
+    nodeId = node.id;
+  } else {
     return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
   }
 
   const result = await prisma.personalityResult.create({
     data: {
-      companyId: testLink.companyId,
+      companyId,
       subjectId,
       subjectType,
       nodeId,

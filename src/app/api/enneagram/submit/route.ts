@@ -38,22 +38,30 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let subjectId: string | undefined = testLink.candidateId ?? undefined;
-  if (!subjectId && testLink.type === "employee") {
-    const node = await prisma.organogramaNode.findFirst({
-      where: { testLinkToken: token, companyId: testLink.companyId },
-      select: { id: true },
-    });
-    if (node) subjectId = node.id;
-  }
+  let subjectId: string;
+  let subjectType: string;
+  const companyId = testLink.companyId;
 
-  if (!subjectId) {
+  if (testLink.candidateId) {
+    subjectId = testLink.candidateId;
+    subjectType = "candidate";
+  } else if (testLink.type === "employee") {
+    const node = await prisma.organogramaNode.findUnique({
+      where: { testLinkToken: token },
+      select: { id: true, companyId: true },
+    });
+    if (!node || node.companyId !== companyId) {
+      return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
+    }
+    subjectId = node.id;
+    subjectType = "employee";
+  } else {
     return NextResponse.json({ error: "Colaborador não identificado" }, { status: 400 });
   }
 
-  // Find existing PersonalityResult created by DISC submit
+  // Find existing PersonalityResult created by DISC submit for this specific subject
   const existing = await prisma.personalityResult.findFirst({
-    where: { companyId: testLink.companyId, subjectId },
+    where: { companyId, subjectId, subjectType },
     orderBy: { createdAt: "desc" },
   });
 
