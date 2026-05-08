@@ -32,15 +32,15 @@ Plataforma que combina testes psicométricos aplicados in-house com inteligênci
 O Contratai resolve um problema real de empresas em crescimento: contratar bem e rápido sem depender de ferramentas caras por teste aplicado.
 
 **Diferenciais:**
-- Motor próprio de testes psicométricos (DISC + Eneagrama + 16 Personalidades) — zero custo recorrente por aplicação
+- Motor próprio de 3 testes psicométricos (DISC + Eneagrama + 16 Personalidades) — zero custo recorrente por aplicação
 - IA que analisa candidatos com contexto real da empresa, da vaga e do líder direto
 - Match multidimensional: candidato × vaga × cultura × líder
 - Portal white-label para candidatos sem criar conta
-- Chat assistente contextual com Markdown renderizado e histórico por vaga
+- Chat assistente com Markdown renderizado e histórico por vaga
 - PDF automático com resultados enviado por e-mail ao candidato
 
 **Usuários:**
-- **RH / Gestor** — cadastra empresa, colaboradores e vagas, gerencia candidatos, visualiza relatórios de match
+- **RH / Gestor** — cadastra empresa, colaboradores e vagas, gerencia candidatos, visualiza relatórios
 - **Colaborador** — faz os testes para compor o perfil de líder
 - **Candidato** — acessa via link único, realiza os 3 testes, recebe PDF com resultados
 
@@ -84,11 +84,11 @@ Serviços externos:
   └── ViaCEP → auto-preenchimento de endereço
 ```
 
-**Multi-tenancy:** toda tabela tem `companyId`. Cada empresa é isolada por design — impossível vazar dados entre tenants.
+**Multi-tenancy:** toda tabela tem `companyId`. Cada empresa é isolada por design.
 
 **Autenticação JWT:** token contém `id`, `email` e `companyId` criptografados. Nenhuma consulta ao banco a cada request.
 
-**Connection Pooler:** em produção usa o Transaction Pooler do Supabase (porta 6543) para suportar múltiplas instâncias serverless da Vercel sem estourar o limite de conexões.
+**Connection Pooler:** em produção usa Transaction Pooler do Supabase (porta 6543) para suportar múltiplas instâncias serverless sem estourar o limite de conexões.
 
 ---
 
@@ -109,14 +109,14 @@ src/
 │   │   ├── company/create/route.ts              # Criar empresa no onboarding
 │   │   ├── disc/submit/route.ts                 # Calcular e salvar DISC
 │   │   ├── enneagram/submit/route.ts            # Calcular e salvar Eneagrama
-│   │   ├── mbti/submit/route.ts                 # Calcular e salvar 16P + enviar PDF
+│   │   ├── mbti/submit/route.ts                 # Calcular, salvar 16P + enviar PDF
 │   │   ├── organograma/route.ts                 # Gerenciar organograma
 │   │   ├── test-links/route.ts                  # Gerar link único
 │   │   └── vagas/
 │   │       ├── route.ts                         # GET lista / POST cria vaga
 │   │       └── [id]/
 │   │           ├── route.ts                     # PATCH edita / DELETE exclui
-│   │           ├── candidatos/route.ts          # POST adiciona candidato
+│   │           ├── candidatos/route.ts          # POST adiciona + cria TestLink
 │   │           ├── candidatos/[id]/route.ts     # DELETE exclui candidato
 │   │           ├── chat/route.ts                # POST chat com streaming
 │   │           ├── desafio/route.ts             # POST desafio técnico por IA
@@ -165,7 +165,7 @@ src/
     ├── mbti/scoring.ts                          # Scoring E/I, S/N, T/F, J/P
     ├── pdf/resultadoPDF.tsx                     # PDF com os 3 resultados
     ├── prisma.ts                                # Conexão com banco
-    └── resend.ts                               # Client e-mail
+    └── resend.ts                                # Client e-mail
 ```
 
 ---
@@ -173,38 +173,39 @@ src/
 ## Banco de Dados
 
 ```
-Company          User             Job
-─────────        ────────         ──────────────────
-id               id               id
-razaoSocial      companyId        companyId
-cnpj             email            titulo, motivo
-enderecoJson     nome             responsabilidades
-logoUrl          role             metas, jdGerada
-contextoEmpresa  createdAt        salaryMin/Max
-perfilRitmo                       perfilIdealJson
-valores[]                         liderId → OrganogramaNode
-contextoJson                      status
+Company               User                Job
+──────────────        ────────────        ──────────────────
+id                    id                  id
+razaoSocial           companyId           companyId
+cnpj                  email               titulo, motivo
+enderecoJson          nome                responsabilidades
+logoUrl               role                metas, jdGerada
+contextoEmpresa       createdAt           salaryMin/Max
+perfilRitmo                               perfilIdealJson
+valores[]                                 liderId → OrganogramaNode
+contextoJson                              status
 
-Candidate        TestLink         PersonalityResult
-─────────────    ────────         ─────────────────
-id               id               id
-jobId            companyId        companyId
-companyId        token (único)    subjectId
-nome             candidateId      subjectType (candidate/employee)
-email            expiresAt        discJson
-linkedinUrl      completedAt      enneagramJson
-                 type             mbtiJson
-                 (candidate/      createdAt
-                  employee)
+Candidate             TestLink            PersonalityResult
+──────────────        ────────────        ─────────────────
+id                    id                  id
+jobId                 companyId           companyId
+companyId             token (único)       subjectId (String)
+nome                  candidateId         subjectType
+email                 expiresAt           (candidate/employee)
+linkedinUrl           completedAt         discJson
+testLinkToken         type                enneagramJson
+                      (candidate/         mbtiJson
+                       employee)          createdAt
 
-MatchReport      ChatMessage      OrganogramaNode
-────────────     ────────────     ───────────────
-id               id               id
-jobId            companyId        companyId
-candidateId      jobId            nome, cargo
-rankingPosition  role             departamento
-matchScore       content          email
-relatorioJson    createdAt        parentId
+MatchReport           ChatMessage         OrganogramaNode
+────────────          ────────────        ───────────────
+id                    id                  id
+jobId                 companyId           companyId
+candidateId           jobId               nome, cargo
+rankingPosition       role                departamento
+matchScore            content             email
+relatorioJson         createdAt           testLinkToken
+                                          parentId
 ```
 
 ---
@@ -216,12 +217,12 @@ Login com Google OAuth via NextAuth v4. Strategy JWT com `companyId` no token. T
 
 ### 2 — Onboarding (4 etapas)
 - **Etapa 1:** dados cadastrais com ViaCEP automático
-- **Etapa 2:** organograma — cadastro de colaboradores
-- **Etapa 3:** envio de links de teste para colaboradores
-- **Etapa 4:** contexto e cultura que alimenta a IA
+- **Etapa 2:** organograma — cadastro de colaboradores com cargo e departamento
+- **Etapa 3:** geração de links de teste para colaboradores
+- **Etapa 4:** contexto e cultura que alimenta a IA para match preciso
 
 ### 3 — Gestão de Colaboradores
-Página dedicada para adicionar, listar e excluir colaboradores após o onboarding. Geração de links de teste individuais. Colaboradores com teste concluído ficam disponíveis como líderes nas vagas.
+Página dedicada para adicionar, listar e excluir colaboradores após o onboarding. Geração de links individuais. Colaboradores com teste concluído ficam disponíveis como líderes nas vagas.
 
 ### 4 — Motor DISC
 28 blocos de 4 palavras. Candidato escolhe mais e menos. Calcula D/I/S/C em percentual. Base open source — zero custo por aplicação.
@@ -230,10 +231,10 @@ Página dedicada para adicionar, listar e excluir colaboradores após o onboardi
 36 afirmações com escala 1-5. Identifica tipo 1-9 e asa. Base MIT reescrita em TypeScript.
 
 ### 6 — Motor 16 Personalidades (MBTI via IPIP)
-60 afirmações com escala 1-5. Mede E/I, S/N, T/F, J/P. Gera tipo de 4 letras. Base IPIP domínio público.
+60 afirmações com escala 1-5. Mede E/I, S/N, T/F, J/P. Gera tipo de 4 letras (ex: INTJ, ENFP). Base IPIP domínio público — uso comercial irrestrito.
 
 ### 7 — Portal White-Label do Candidato
-Link único sem criar conta. Logo da empresa. LGPD + SATEPSI. Três testes em sequência com bolinhas de progresso coloridas. PDF enviado por e-mail automaticamente.
+Link único sem criar conta. Logo da empresa. LGPD + SATEPSI. Três testes em sequência com bolinhas de progresso coloridas. PDF com resultados enviado por e-mail ao concluir.
 
 ### 8 — Gestão de Vagas
 Dashboard com vagas reais. Fluxo A (candidatura pública) e Fluxo B (manual). Seleção de líder direto na criação e edição. Excluir com cascade.
@@ -242,16 +243,20 @@ Dashboard com vagas reais. Fluxo A (candidatura pública) e Fluxo B (manual). Se
 JD completa, estimativa salarial com breakdown de encargos brasileiros (INSS, FGTS, férias, 13º, VT, plano de saúde), perfil psicométrico ideal e perguntas de triagem.
 
 ### 10 — IA: Match Ranqueado com Líder
-Score 0-100 por candidato com DISC + Eneagrama + MBTI em paralelo. Inclui perfil do líder direto no contexto. Gera: pontos fortes, pontos de atenção, fit cultural, compatibilidade com líder, como delegar, como dar feedback, perguntas para entrevista.
+Score 0-100 por candidato com DISC + Eneagrama + MBTI em paralelo (Promise.all). Inclui perfil do líder no contexto. Gera: pontos fortes, pontos de atenção, fit cultural, compatibilidade com líder, como delegar, como dar feedback, perguntas para entrevista.
 
 ### 11 — IA: Desafio Técnico
-Desafio prático personalizado com tarefas, entregáveis, critérios e dica para o avaliador baseada no perfil do candidato.
+Desafio prático personalizado com tarefas, entregáveis, critérios e dica para o avaliador baseada no perfil psicométrico do candidato.
 
 ### 12 — Chat Assistente de RH
-Sidebar colapsável com streaming real. Markdown renderizado. Contexto completo injetado (empresa + vaga + candidatos + líder). Histórico por vaga.
+Sidebar colapsável com streaming real (ReadableStream). Markdown renderizado com react-markdown. Contexto completo injetado. Histórico por vaga salvo no banco.
 
-### 13 — E-mails + PDF Automático
-Link para candidato. PDF com DISC + Eneagrama + MBTI ao concluir. Notificação para RH. Domínio verificado no Resend.
+### 13 — E-mails Automáticos + PDF
+- E-mail de boas-vindas após cadastro
+- E-mail com link do teste para candidato
+- E-mail com PDF dos resultados ao concluir os 3 testes
+- Notificação para RH quando candidato conclui
+- Domínio verificado: `noreply@pirulitodocorte.xyz`
 
 ---
 
@@ -259,9 +264,9 @@ Link para candidato. PDF com DISC + Eneagrama + MBTI ao concluir. Notificação 
 
 ### Fluxo A — Candidatura pública
 ```
-RH cria vaga + seleciona líder
+RH cria vaga + seleciona líder direto
 → Copia link público (/candidatura/[vagaId])
-→ Candidato acessa, preenche nome + email
+→ Candidato preenche nome + email
 → Sistema cria Candidate + TestLink automaticamente
 → Candidato faz DISC → Eneagrama → 16P
 → Candidato recebe PDF por e-mail
@@ -272,7 +277,8 @@ RH cria vaga + seleciona líder
 ```
 RH cria vaga + seleciona líder
 → Adiciona candidatos manualmente
-→ Envia link por e-mail
+→ Sistema cria TestLink automaticamente
+→ RH envia link por e-mail
 → Candidato faz DISC → Eneagrama → 16P
 → RH executa match → usa chat para tirar dúvidas
 ```
@@ -280,9 +286,9 @@ RH cria vaga + seleciona líder
 ### Fluxo do colaborador (líder)
 ```
 RH cadastra colaborador em /colaboradores
-→ Gera link de teste
+→ Gera link de teste individual
 → Colaborador faz DISC → Eneagrama → 16P
-→ Perfil fica disponível para seleção como líder nas vagas
+→ Perfil disponível para seleção como líder nas vagas
 → IA usa perfil do líder no match com candidatos
 ```
 
@@ -319,7 +325,9 @@ Acesse `http://localhost:3000`
 ## Variáveis de Ambiente
 
 ```env
-# Banco de dados (Supabase — usar Direct Connection localmente)
+# Banco de dados (Supabase)
+# Local: usar Direct Connection (porta 5432)
+# Produção: usar Transaction Pooler (porta 6543) com ?pgbouncer=true&connection_limit=1
 DATABASE_URL="postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres"
 DIRECT_URL="postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres"
 
@@ -338,8 +346,6 @@ ANTHROPIC_API_KEY="sk-ant-..."
 RESEND_API_KEY="re_..."
 ```
 
-> **Produção:** usar Transaction Pooler do Supabase na `DATABASE_URL` (porta 6543) com `?pgbouncer=true&connection_limit=1`
-
 ---
 
 ## Deploy na Vercel
@@ -352,29 +358,31 @@ vercel --prod
 
 **Configurações obrigatórias:**
 1. Adicionar todas as variáveis de ambiente no painel da Vercel
-2. `NEXTAUTH_URL` → URL de produção
-3. `DATABASE_URL` → Transaction Pooler (porta 6543)
-4. Google Cloud Console → adicionar URL de produção nas origens e callbacks
+2. `NEXTAUTH_URL` → URL de produção (ex: `https://contratai-five.vercel.app`)
+3. `DATABASE_URL` → Transaction Pooler porta 6543 com `?pgbouncer=true&connection_limit=1`
+4. Google Cloud Console → adicionar URL de produção nas origens e callbacks autorizados
 
 ---
 
 ## Decisões Técnicas
 
-**Next.js App Router** — full-stack em um projeto. Server Components acessam o banco diretamente.
+**Next.js App Router** — full-stack em um projeto. Server Components acessam o banco diretamente sem API intermediária.
 
-**JWT strategy** — token com `companyId` no cookie. Sem consulta ao banco a cada request.
+**JWT strategy** — token com `companyId` no cookie. Sem consulta ao banco a cada request. Mais rápido e escalável.
 
-**Open source para testes** — DISC (GitHub), Eneagrama (MIT), 16P via IPIP (domínio público). Zero custo recorrente.
+**subjectId como String** — PersonalityResult usa `subjectId` como campo String sem FK, permitindo referenciar tanto `Candidate.id` quanto `OrganogramaNode.id`. O campo `subjectType` ("candidate" ou "employee") distingue o tipo.
+
+**Open source para testes** — DISC (GitHub), Eneagrama (MIT), 16P via IPIP (domínio público). Zero custo recorrente. Propriedade total dos dados.
 
 **Claude Haiku 4.5** — modelo mais rápido e econômico da Anthropic. Ideal para múltiplas análises em paralelo.
 
 **Promise.all no match** — candidatos processados em paralelo. Com 5 candidatos, o tempo é o mesmo que para 1.
 
-**Transaction Pooler** — resolve o limite de 15 conexões do Supabase gratuito em ambiente serverless.
+**Transaction Pooler** — resolve o limite de 15 conexões do Supabase gratuito em ambiente serverless da Vercel.
 
 **Streaming no chat** — ReadableStream + reader.read(). Resposta em tempo real sem timeout.
 
-**react-markdown** — renderiza Markdown das respostas da IA no chat para melhor legibilidade.
+**react-markdown + remark-gfm** — renderiza Markdown das respostas da IA no chat para melhor legibilidade.
 
 ---
 
