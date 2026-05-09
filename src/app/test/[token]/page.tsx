@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import DiscTestClient from "./DiscTestClient";
 import EnneagramClient from "./EnneagramClient";
 import MBTIClient from "./MBTIClient";
+import TriagemClient from "./TriagemClient";
 
 interface Props {
   params: Promise<{ token: string }>;
@@ -102,6 +103,34 @@ export default async function TestPage({ params }: Props) {
         </div>
       </main>
     );
+  }
+
+  // Triagem check (Fluxo B — candidate links only)
+  if (testLink.type === "candidate" && testLink.candidateId) {
+    const candidateData = await prisma.candidate.findUnique({
+      where: { id: testLink.candidateId },
+      select: { respostasJson: true, jobId: true },
+    });
+
+    if (candidateData && !candidateData.respostasJson) {
+      const job = await prisma.job.findUnique({
+        where: { id: candidateData.jobId },
+        select: { perfilIdealJson: true },
+      });
+      const perguntas: string[] = (job?.perfilIdealJson as any)?.perguntas ?? [];
+
+      if (perguntas.length > 0) {
+        return (
+          <TriagemClient
+            token={token}
+            perguntas={perguntas}
+            companyName={companyName}
+            logoUrl={logoUrl}
+            candidateName={candidateName}
+          />
+        );
+      }
+    }
   }
 
   // Determine subjectId for the PersonalityResult lookup
