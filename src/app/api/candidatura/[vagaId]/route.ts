@@ -45,6 +45,14 @@ export async function POST(req: NextRequest, { params }: Params) {
   const nome = body?.nome?.trim();
   const email = body?.email?.trim();
   const respostasJson = body?.respostasJson ?? null;
+  const linkedinUrl: string | null =
+    typeof body?.linkedinUrl === "string" && body.linkedinUrl.trim()
+      ? body.linkedinUrl.trim()
+      : null;
+  const cvBase64: string | null =
+    typeof body?.cvBase64 === "string" && body.cvBase64.startsWith("data:application/pdf;base64,")
+      ? body.cvBase64
+      : null;
 
   if (!nome) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
   if (!email) return NextResponse.json({ error: "E-mail é obrigatório" }, { status: 400 });
@@ -67,6 +75,8 @@ export async function POST(req: NextRequest, { params }: Params) {
         companyId: job.companyId,
         nome,
         email,
+        linkedinUrl,
+        cvUrl: cvBase64,
         respostasJson: respostasJson ?? undefined,
       },
     });

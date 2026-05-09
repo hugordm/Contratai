@@ -23,6 +23,10 @@ export default function CandidaturaPage() {
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [cvBase64, setCvBase64] = useState<string | null>(null);
+  const [cvFileName, setCvFileName] = useState("");
+  const [cvError, setCvError] = useState("");
   const [errors, setErrors] = useState<{ nome?: string; email?: string }>({});
 
   const [respostas, setRespostas] = useState<string[]>([]);
@@ -64,11 +68,35 @@ export default function CandidaturaPage() {
     }
   };
 
+  const handleCvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCvError("");
+    if (file.type !== "application/pdf") {
+      setCvError("Apenas arquivos PDF são aceitos.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCvError("Arquivo deve ter no máximo 5MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCvBase64(reader.result as string);
+      setCvFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFinalSubmit = async (respostasArr: string[]) => {
     setSubmitting(true);
     setSubmitError("");
     try {
       const body: Record<string, unknown> = { nome: nome.trim(), email: email.trim() };
+      if (linkedinUrl.trim()) body.linkedinUrl = linkedinUrl.trim();
+      if (cvBase64) body.cvBase64 = cvBase64;
       if (respostasArr.length > 0) {
         body.respostasJson = respostasArr;
       }
@@ -177,6 +205,43 @@ export default function CandidaturaPage() {
                   }`}
                 />
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  LinkedIn <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/seu-perfil"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4A5452] transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Currículo <span className="text-gray-400 font-normal">(opcional, PDF, máx. 5MB)</span>
+                </label>
+                {cvFileName ? (
+                  <div className="flex items-center gap-2 bg-[#F5F7F0] border border-gray-200 rounded-xl px-4 py-3">
+                    <span className="text-sm text-[#4A5452] flex-1 truncate">📄 {cvFileName}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setCvBase64(null); setCvFileName(""); setCvError(""); }}
+                      className="text-xs text-gray-400 hover:text-gray-600 font-medium flex-shrink-0"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 cursor-pointer border border-gray-200 rounded-xl px-4 py-3 hover:border-[#4A5452] transition">
+                    <span className="text-sm text-gray-400">📎 Anexar currículo</span>
+                    <input type="file" accept=".pdf" onChange={handleCvUpload} className="hidden" />
+                  </label>
+                )}
+                {cvError && <p className="text-red-500 text-xs mt-1">{cvError}</p>}
               </div>
 
               {submitError && (
