@@ -6,8 +6,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { anthropic } from "@/lib/anthropic";
 
-export const maxDuration = 10;
-
 const MOTIVO_LABELS: Record<string, string> = {
   crescimento: "Crescimento da equipe",
   substituicao: "Substituição de colaborador",
