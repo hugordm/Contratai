@@ -34,6 +34,7 @@ interface Props {
   jobResponsabilidades?: string | null;
   jobMetas?: string | null;
   initialJd: JDResult | null;
+  initialPerguntas: string[];
   initialCandidates: CandidateItem[];
   criouComIA: boolean;
   liderNome?: string | null;
@@ -62,6 +63,7 @@ export default function VagaClient({
   jobResponsabilidades,
   jobMetas,
   initialJd,
+  initialPerguntas,
   initialCandidates,
   criouComIA,
   liderNome,
@@ -71,6 +73,12 @@ export default function VagaClient({
   const [jdData, setJdData] = useState<JDResult | null>(initialJd);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
+
+  const [perguntas, setPerguntas] = useState<string[]>(
+    initialJd?.perguntas?.length ? initialJd.perguntas : initialPerguntas
+  );
+  const [generatingPerguntas, setGeneratingPerguntas] = useState(false);
+  const [perguntasError, setPerguntasError] = useState("");
 
   const [candidates, setCandidates] = useState<CandidateItem[]>(initialCandidates);
   const [showForm, setShowForm] = useState(false);
@@ -104,11 +112,32 @@ export default function VagaClient({
         setGenError(data.error ?? "Erro ao gerar com IA. Tente novamente.");
         return;
       }
-      setJdData(await res.json());
+      const result = await res.json();
+      setJdData(result);
+      if (result.perguntas?.length) setPerguntas(result.perguntas);
     } catch {
       setGenError("Erro de conexão. Tente novamente.");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const generatePerguntas = async () => {
+    setGeneratingPerguntas(true);
+    setPerguntasError("");
+    try {
+      const res = await fetch(`/api/vagas/${jobId}/gerar-perguntas`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        setPerguntasError(data.error ?? "Erro ao gerar perguntas. Tente novamente.");
+        return;
+      }
+      const data = await res.json();
+      setPerguntas(data.perguntas ?? []);
+    } catch {
+      setPerguntasError("Erro de conexão. Tente novamente.");
+    } finally {
+      setGeneratingPerguntas(false);
     }
   };
 
@@ -528,6 +557,62 @@ export default function VagaClient({
         </div>
       )}
 
+      {/* Perguntas de triagem standalone (mostra quando jdData não cobre as perguntas) */}
+      {(!jdData || perguntas.length === 0) && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 mb-6">
+          <div className="flex items-center gap-2 mb-5">
+            <span className="text-xl">✎</span>
+            <h2 className="text-base font-bold text-[#4A5452]">Perguntas de triagem</h2>
+          </div>
+
+          {generatingPerguntas && <TriagemSkeleton />}
+
+          {!generatingPerguntas && perguntas.length === 0 && (
+            <div className="bg-gradient-to-br from-[#F5F7F0] to-[#eaede5] rounded-xl p-6 text-center border border-[#d8dbd3]">
+              <p className="text-[#4A5452] font-semibold text-base mb-2">
+                Nenhuma pergunta de triagem cadastrada
+              </p>
+              <p className="text-gray-500 text-sm mb-5 max-w-sm mx-auto">
+                Gere perguntas específicas para este cargo. Elas serão respondidas pelo candidato antes dos testes comportamentais.
+              </p>
+              {perguntasError && (
+                <p className="text-red-500 text-sm mb-4">{perguntasError}</p>
+              )}
+              <button
+                onClick={generatePerguntas}
+                className="bg-[#C4FF57] text-[#4A5452] font-bold px-6 py-3 rounded-xl text-sm hover:bg-[#b3ee46] transition"
+              >
+                ✨ Gerar perguntas de triagem
+              </button>
+            </div>
+          )}
+
+          {!generatingPerguntas && perguntas.length > 0 && (
+            <div>
+              <ol className="space-y-3 mb-5">
+                {perguntas.map((p, i) => (
+                  <li key={i} className="flex gap-3 text-sm text-gray-700 leading-relaxed">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4A5452] text-white text-xs flex items-center justify-center font-bold mt-0.5">
+                      {i + 1}
+                    </span>
+                    {p}
+                  </li>
+                ))}
+              </ol>
+              {perguntasError && (
+                <p className="text-red-500 text-xs mb-3">{perguntasError}</p>
+              )}
+              <button
+                onClick={generatePerguntas}
+                className="text-xs text-gray-400 hover:text-gray-600 transition"
+              >
+                Gerar novamente
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Candidatos */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
         <div className="flex items-center justify-between mb-6">
@@ -747,6 +832,22 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     <h3 className="text-xs font-semibold text-[#4A5452] uppercase tracking-widest mb-3">
       {children}
     </h3>
+  );
+}
+
+function TriagemSkeleton() {
+  return (
+    <div className="animate-pulse space-y-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex gap-3 items-start">
+          <div className="w-6 h-6 bg-gray-200 rounded-full flex-shrink-0 mt-0.5"></div>
+          <div className="flex-1 space-y-1.5">
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

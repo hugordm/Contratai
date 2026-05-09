@@ -81,6 +81,7 @@ export default async function VagaPage({ params, searchParams }: Props) {
           perfilIdeal: perfilIdeal.perfilIdeal ?? { disc: [], justificativa: "" },
         }
       : null;
+  const initialPerguntas: string[] = perfilIdeal?.perguntas ?? [];
 
   const criouComIA = ajuda === "ia";
 
@@ -112,6 +113,7 @@ export default async function VagaPage({ params, searchParams }: Props) {
           jobResponsabilidades={job.responsabilidades}
           jobMetas={job.metas}
           initialJd={initialJd}
+          initialPerguntas={initialPerguntas}
           initialCandidates={initialCandidates}
           criouComIA={criouComIA}
           liderNome={liderNome}
