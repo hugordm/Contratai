@@ -105,28 +105,16 @@ ${leaderFields}
       ]
     : candidateContext;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 9000);
+  console.log("INICIANDO MATCH - candidatos:", candidateId);
 
-  let message: Awaited<ReturnType<typeof anthropic.messages.create>>;
-  try {
-    message = await anthropic.messages.create(
-      {
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 800,
-        system: "Especialista em RH. Responda APENAS com JSON válido, sem markdown.",
-        messages: [{ role: "user", content: userContent }],
-      },
-      { signal: controller.signal }
-    );
-  } catch (err: any) {
-    if (controller.signal.aborted || err?.name === "AbortError") {
-      throw new Error("timeout");
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 3000,
+    system: "Especialista em RH. Responda APENAS com JSON válido, sem markdown. Responda em JSON válido e conciso. Limite cada campo de texto a no máximo 2 frases.",
+    messages: [{ role: "user", content: userContent }],
+  });
+
+  console.log("IA RESPONDEU - candidato:", candidateId);
 
   const block = message.content[0];
   if (block.type !== "text") throw new Error("Resposta inválida da IA");
@@ -138,7 +126,13 @@ ${leaderFields}
     .replace(/\n?```$/, '')
     .trim();
 
-  return JSON.parse(cleanJson);
+  try {
+    return JSON.parse(cleanJson);
+  } catch {
+    const match = cleanJson.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+    throw new Error("JSON inválido");
+  }
 }
 
 export async function POST(
@@ -258,6 +252,7 @@ VAGA:
   }
 
   // Always sequential to stay within Vercel 10s limit
+  console.log("INICIANDO MATCH - candidatos:", withDisc.length);
   const results: any[] = [];
   for (const c of withDisc) {
     const pr = prMap.get(c.id);
@@ -272,7 +267,10 @@ VAGA:
       !!leadersContext,
       c.cvUrl ?? null,
       c.entrevistaTexto ?? null
-    ).catch(() => null);
+    ).catch((error: any) => {
+      console.error("ERRO MATCH DETALHADO:", error?.message, error?.status, JSON.stringify(error, null, 2));
+      return null;
+    });
     if (result) results.push(result);
   }
 
