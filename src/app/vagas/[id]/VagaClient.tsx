@@ -100,6 +100,16 @@ export default function VagaClient({
   const [deleteCandidate, setDeleteCandidate] = useState<{ id: string; nome: string } | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState(false);
 
+  const [editCandidate, setEditCandidate] = useState<{
+    id: string; nome: string; email: string; linkedinUrl: string; entrevistaTexto: string;
+  } | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editCvBase64, setEditCvBase64] = useState<string | null>(null);
+  const [editCvFileName, setEditCvFileName] = useState("");
+  const [editCvError, setEditCvError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState("");
+
   const totalCandidates = jobCandidateCount + (candidates.length - initialCandidates.length);
 
   const generateJD = async () => {
@@ -240,6 +250,96 @@ export default function VagaClient({
     }
   };
 
+  const openEditModal = async (candidate: CandidateItem) => {
+    setEditCvBase64(null);
+    setEditCvFileName("");
+    setEditCvError("");
+    setEditError("");
+    setEditCandidate({
+      id: candidate.id,
+      nome: candidate.nome,
+      email: candidate.email,
+      linkedinUrl: candidate.linkedinUrl ?? "",
+      entrevistaTexto: "",
+    });
+    setEditLoading(true);
+    try {
+      const res = await fetch(`/api/vagas/${jobId}/candidatos/${candidate.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setEditCandidate({
+          id: candidate.id,
+          nome: candidate.nome,
+          email: candidate.email,
+          linkedinUrl: data.linkedinUrl ?? "",
+          entrevistaTexto: data.entrevistaTexto ?? "",
+        });
+      }
+    } catch {
+      // fallback to what we already set
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleEditCvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEditCvError("");
+    if (file.type !== "application/pdf") {
+      setEditCvError("Apenas arquivos PDF são aceitos.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditCvError("Arquivo deve ter no máximo 5MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditCvBase64(reader.result as string);
+      setEditCvFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveEdit = async () => {
+    if (!editCandidate) return;
+    setSavingEdit(true);
+    setEditError("");
+    try {
+      const body: Record<string, unknown> = {
+        linkedinUrl: editCandidate.linkedinUrl,
+        entrevistaTexto: editCandidate.entrevistaTexto,
+      };
+      if (editCvBase64) body.cvBase64 = editCvBase64;
+
+      const res = await fetch(`/api/vagas/${jobId}/candidatos/${editCandidate.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setEditError(data.error ?? "Erro ao salvar. Tente novamente.");
+        return;
+      }
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.id === editCandidate.id
+            ? { ...c, linkedinUrl: editCandidate.linkedinUrl || null }
+            : c
+        )
+      );
+      setEditCandidate(null);
+    } catch {
+      setEditError("Erro de conexão. Tente novamente.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const confirmDeleteCandidate = async () => {
     if (!deleteCandidate) return;
     setDeletingCandidate(true);
@@ -354,6 +454,103 @@ export default function VagaClient({
                 {deletingCandidate ? "Excluindo..." : "Excluir"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edição de candidato */}
+      {editCandidate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold text-[#4A5452] mb-1">Editar candidato</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              {editCandidate.nome} · {editCandidate.email}
+            </p>
+
+            {editLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 border-2 border-[#C4FF57] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    LinkedIn <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={editCandidate.linkedinUrl}
+                    onChange={(e) =>
+                      setEditCandidate((p) => p ? { ...p, linkedinUrl: e.target.value } : p)
+                    }
+                    placeholder="https://linkedin.com/in/..."
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4A5452]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    Currículo <span className="text-gray-400 font-normal">(opcional, PDF, máx. 5MB)</span>
+                  </label>
+                  {editCvFileName ? (
+                    <div className="flex items-center gap-2 bg-[#F5F7F0] border border-gray-200 rounded-xl px-4 py-2.5">
+                      <span className="text-sm text-[#4A5452] flex-1 truncate">📄 {editCvFileName}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setEditCvBase64(null); setEditCvFileName(""); setEditCvError(""); }}
+                        className="text-xs text-gray-400 hover:text-gray-600 font-medium flex-shrink-0"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 cursor-pointer border border-gray-200 rounded-xl px-4 py-2.5 hover:border-[#4A5452] transition">
+                      <span className="text-sm text-gray-400">📎 Substituir currículo</span>
+                      <input type="file" accept=".pdf" onChange={handleEditCvUpload} className="hidden" />
+                    </label>
+                  )}
+                  {editCvError && <p className="text-red-500 text-xs mt-1">{editCvError}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    Transcrição de entrevista <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <textarea
+                    value={editCandidate.entrevistaTexto}
+                    onChange={(e) =>
+                      setEditCandidate((p) => p ? { ...p, entrevistaTexto: e.target.value } : p)
+                    }
+                    placeholder="Cole aqui a transcrição da entrevista com o candidato..."
+                    rows={5}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4A5452] resize-none"
+                  />
+                </div>
+
+                {editError && (
+                  <p className="text-red-500 text-sm bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                    {editError}
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setEditCandidate(null)}
+                    disabled={savingEdit}
+                    className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={saveEdit}
+                    disabled={savingEdit}
+                    className="flex-1 bg-[#4A5452] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#3a4442] transition disabled:opacity-50"
+                  >
+                    {savingEdit ? "Salvando..." : "Salvar alterações"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -804,6 +1001,12 @@ export default function VagaClient({
                         : "📧 Enviar link"}
                     </button>
                   )}
+                  <button
+                    onClick={() => openEditModal(candidate)}
+                    className="text-xs font-medium border border-gray-200 px-2.5 py-1.5 rounded-lg text-gray-600 hover:border-[#4A5452] hover:text-[#4A5452] transition"
+                  >
+                    Editar
+                  </button>
                   <button
                     onClick={() => setDeleteCandidate({ id: candidate.id, nome: candidate.nome })}
                     className="text-xs font-medium border border-gray-200 px-2.5 py-1.5 rounded-lg text-red-400 hover:border-red-400 hover:text-red-600 transition"
