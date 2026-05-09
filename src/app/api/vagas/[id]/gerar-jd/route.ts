@@ -67,7 +67,7 @@ Gere EXCLUSIVAMENTE o JSON abaixo (sem texto extra, sem markdown, sem backticks)
   "salaryMin": número inteiro (faixa mínima mensal em R$ para este cargo no Brasil),
   "salaryMax": número inteiro (faixa máxima mensal),
   "salaryBreakdown": "Justificativa da faixa em 2-3 frases considerando cargo, senioridade esperada e mercado",
-  "perguntas": ["pergunta 1", "pergunta 2", "pergunta 3", "pergunta 4", "pergunta 5"],
+  "perguntas": ["pergunta triagem 1", "pergunta triagem 2", ..., entre 5 e 8 perguntas específicas para esta vaga],
   "perfilIdeal": {
     "disc": ["X"] ou ["X","Y"] (1 a 2 perfis mais adequados entre D, I, S, C),
     "justificativa": "Por que esses perfis são ideais para este cargo nesta empresa"

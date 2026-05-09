@@ -14,6 +14,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       select: {
         titulo: true,
         status: true,
+        perfilIdealJson: true,
         company: { select: { razaoSocial: true, logoUrl: true } },
       },
     });
@@ -22,10 +23,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Vaga não encontrada" }, { status: 404 });
     }
 
+    const perguntas: string[] = (job.perfilIdealJson as any)?.perguntas ?? [];
+
     return NextResponse.json({
       titulo: job.titulo,
       empresa: job.company.razaoSocial,
       logoUrl: job.company.logoUrl ?? null,
+      perguntas,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -40,6 +44,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const body = await req.json().catch(() => null);
   const nome = body?.nome?.trim();
   const email = body?.email?.trim();
+  const respostasJson = body?.respostasJson ?? null;
 
   if (!nome) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
   if (!email) return NextResponse.json({ error: "E-mail é obrigatório" }, { status: 400 });
@@ -62,6 +67,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         companyId: job.companyId,
         nome,
         email,
+        respostasJson: respostasJson ?? undefined,
       },
     });
 

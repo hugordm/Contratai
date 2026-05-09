@@ -25,7 +25,7 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { nome, email, linkedinUrl } = body;
+  const { nome, email, linkedinUrl, cvBase64 } = body;
 
   if (!nome?.trim()) {
     return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
@@ -41,6 +41,9 @@ export async function POST(
       nome: nome.trim(),
       email: email.trim().toLowerCase(),
       linkedinUrl: linkedinUrl?.trim() || null,
+      cvUrl: typeof cvBase64 === "string" && cvBase64.startsWith("data:application/pdf;base64,")
+        ? cvBase64
+        : null,
     },
   });
 

@@ -30,7 +30,8 @@ async function analyzeCandidate(
   mbtiJson: any,
   jobContext: string,
   leadersContext: string,
-  hasLeader: boolean
+  hasLeader: boolean,
+  cvUrl?: string | null
 ): Promise<any> {
   const disc = discJson as any;
   const percentages = disc?.percentages ?? {};
@@ -80,12 +81,34 @@ ${leaderFields}
   "perguntasComplementares": ["<pergunta 1>", "<pergunta 2>", "<pergunta 3>"]
 }`;
 
+  const hasPdf =
+    typeof cvUrl === "string" && cvUrl.startsWith("data:application/pdf;base64,");
+
+  const userContent: any = hasPdf
+    ? [
+        {
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: "application/pdf",
+            data: cvUrl!.replace("data:application/pdf;base64,", ""),
+          },
+        },
+        {
+          type: "text",
+          text:
+            candidateContext +
+            "\n\nO candidato enviou um currículo em PDF (documento acima). Use as informações do currículo para enriquecer sua análise de fit cultural, pontos fortes e pontos de atenção.",
+        },
+      ]
+    : candidateContext;
+
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1500,
     system:
       "Você é um especialista sênior em RH e psicologia organizacional no mercado brasileiro. Responda EXCLUSIVAMENTE com JSON válido. Não use markdown, não use backticks, não escreva nenhum texto fora do objeto JSON.",
-    messages: [{ role: "user", content: candidateContext }],
+    messages: [{ role: "user", content: userContent }],
   });
 
   const block = message.content[0];
@@ -230,7 +253,8 @@ VAGA:
           pr.mbtiJson,
           jobContext,
           leadersContext,
-          !!leadersContext
+          !!leadersContext,
+          c.cvUrl ?? null
         ).catch(() => null);
       })
     );

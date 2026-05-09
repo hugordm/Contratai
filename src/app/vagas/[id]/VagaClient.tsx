@@ -77,6 +77,9 @@ export default function VagaClient({
   const [form, setForm] = useState({ nome: "", email: "", linkedinUrl: "" });
   const [addingCandidate, setAddingCandidate] = useState(false);
   const [formError, setFormError] = useState("");
+  const [cvBase64, setCvBase64] = useState<string | null>(null);
+  const [cvFileName, setCvFileName] = useState("");
+  const [cvError, setCvError] = useState("");
 
   const [copiedLink, setCopiedLink] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
@@ -109,6 +112,34 @@ export default function VagaClient({
     }
   };
 
+  const handleCvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCvError("");
+    if (file.type !== "application/pdf") {
+      setCvError("Apenas arquivos PDF são aceitos.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCvError("Arquivo deve ter no máximo 5MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCvBase64(reader.result as string);
+      setCvFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const resetCv = () => {
+    setCvBase64(null);
+    setCvFileName("");
+    setCvError("");
+  };
+
   const addCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nome.trim()) { setFormError("Nome é obrigatório"); return; }
@@ -119,7 +150,7 @@ export default function VagaClient({
       const res = await fetch(`/api/vagas/${jobId}/candidatos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, cvBase64: cvBase64 ?? undefined }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -139,6 +170,7 @@ export default function VagaClient({
         ...prev,
       ]);
       setForm({ nome: "", email: "", linkedinUrl: "" });
+      resetCv();
       setShowForm(false);
     } catch {
       setFormError("Erro de conexão. Tente novamente.");
@@ -555,6 +587,34 @@ export default function VagaClient({
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4A5452] bg-white"
               />
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                Currículo <span className="text-gray-400 font-normal">(opcional, PDF, máx. 5MB)</span>
+              </label>
+              {cvFileName ? (
+                <div className="flex items-center gap-2 bg-[#F5F7F0] border border-[#d8dbd3] rounded-lg px-3 py-2.5">
+                  <span className="text-sm text-[#4A5452] flex-1 truncate">📄 {cvFileName}</span>
+                  <button
+                    type="button"
+                    onClick={resetCv}
+                    className="text-xs text-gray-400 hover:text-gray-600 font-medium flex-shrink-0"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 cursor-pointer border border-gray-200 rounded-lg px-3 py-2.5 hover:border-[#4A5452] transition bg-white">
+                  <span className="text-xs text-gray-500">📎 Anexar currículo</span>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleCvUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
+              {cvError && <p className="text-red-500 text-xs mt-1">{cvError}</p>}
+            </div>
             {formError && <p className="text-red-500 text-xs">{formError}</p>}
             <div className="flex gap-3 pt-1">
               <button
@@ -563,6 +623,7 @@ export default function VagaClient({
                   setShowForm(false);
                   setFormError("");
                   setForm({ nome: "", email: "", linkedinUrl: "" });
+                  resetCv();
                 }}
                 className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
               >
