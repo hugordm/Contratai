@@ -4,6 +4,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { anthropic } from "@/lib/anthropic";
 
+export const maxDuration = 25;
+
 const MOTIVO_LABELS: Record<string, string> = {
   crescimento: "Crescimento da equipe",
   substituicao: "Substituição de colaborador",
@@ -247,10 +249,12 @@ VAGA:
 
   let results: any[];
   try {
-    results = await Promise.all(
-      withDisc.map((c) => {
+    if (withDisc.length > 3) {
+      // Sequential to avoid Vercel timeout on hobby plan
+      results = [];
+      for (const c of withDisc) {
         const pr = prMap.get(c.id);
-        return analyzeCandidate(
+        const result = await analyzeCandidate(
           c.id,
           c.nome,
           pr.discJson,
@@ -262,9 +266,28 @@ VAGA:
           c.cvUrl ?? null,
           c.entrevistaTexto ?? null
         ).catch(() => null);
-      })
-    );
-    results = results.filter(Boolean);
+        if (result) results.push(result);
+      }
+    } else {
+      results = await Promise.all(
+        withDisc.map((c) => {
+          const pr = prMap.get(c.id);
+          return analyzeCandidate(
+            c.id,
+            c.nome,
+            pr.discJson,
+            pr.enneagramJson,
+            pr.mbtiJson,
+            jobContext,
+            leadersContext,
+            !!leadersContext,
+            c.cvUrl ?? null,
+            c.entrevistaTexto ?? null
+          ).catch(() => null);
+        })
+      );
+      results = results.filter(Boolean);
+    }
   } catch {
     return NextResponse.json(
       { error: "Erro ao processar análise com IA. Tente novamente." },
