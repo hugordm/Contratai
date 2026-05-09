@@ -110,7 +110,7 @@ export async function POST(
   });
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao enviar e-mail" }, { status: 500 });
+    console.error("[candidatos/enviar-link] Erro ao enviar e-mail:", error);
   }
 
   return NextResponse.json({ success: true, testUrl });

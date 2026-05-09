@@ -69,10 +69,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "CNPJ é obrigatório" }, { status: 400 });
     }
 
+    const cleanedCnpj = cnpj.replace(/\D/g, "");
+
+    const existingCompany = await prisma.company.findUnique({
+      where: { cnpj: cleanedCnpj },
+    });
+
+    if (existingCompany) {
+      const currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+      });
+      if (currentUser?.companyId === existingCompany.id) {
+        return NextResponse.json({ redirect: "/dashboard", companyId: existingCompany.id });
+      }
+      return NextResponse.json(
+        { error: "Este CNPJ já está cadastrado por outro usuário." },
+        { status: 409 }
+      );
+    }
+
     const company = await prisma.company.create({
       data: {
         razaoSocial,
-        cnpj: cnpj.replace(/\D/g, ""),
+        cnpj: cleanedCnpj,
         logoUrl: logoUrl || null,
         enderecoJson: cep ? { cep, logradouro, numero, cidade, estado } : undefined,
         perfilRitmo,
