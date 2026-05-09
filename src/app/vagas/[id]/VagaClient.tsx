@@ -82,7 +82,7 @@ export default function VagaClient({
 
   const [candidates, setCandidates] = useState<CandidateItem[]>(initialCandidates);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nome: "", email: "", linkedinUrl: "" });
+  const [form, setForm] = useState({ nome: "", email: "", linkedinUrl: "", entrevistaTexto: "" });
   const [addingCandidate, setAddingCandidate] = useState(false);
   const [formError, setFormError] = useState("");
   const [cvBase64, setCvBase64] = useState<string | null>(null);
@@ -198,7 +198,7 @@ export default function VagaClient({
         },
         ...prev,
       ]);
-      setForm({ nome: "", email: "", linkedinUrl: "" });
+      setForm({ nome: "", email: "", linkedinUrl: "", entrevistaTexto: "" });
       resetCv();
       setShowForm(false);
     } catch {
@@ -700,6 +700,18 @@ export default function VagaClient({
               )}
               {cvError && <p className="text-red-500 text-xs mt-1">{cvError}</p>}
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                Transcrição de entrevista <span className="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <textarea
+                value={form.entrevistaTexto}
+                onChange={(e) => setForm((f) => ({ ...f, entrevistaTexto: e.target.value }))}
+                placeholder="Cole aqui a transcrição da entrevista com o candidato..."
+                rows={4}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4A5452] bg-white resize-none"
+              />
+            </div>
             {formError && <p className="text-red-500 text-xs">{formError}</p>}
             <div className="flex gap-3 pt-1">
               <button
@@ -707,7 +719,7 @@ export default function VagaClient({
                 onClick={() => {
                   setShowForm(false);
                   setFormError("");
-                  setForm({ nome: "", email: "", linkedinUrl: "" });
+                  setForm({ nome: "", email: "", linkedinUrl: "", entrevistaTexto: "" });
                   resetCv();
                 }}
                 className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition"

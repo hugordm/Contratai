@@ -31,7 +31,8 @@ async function analyzeCandidate(
   jobContext: string,
   leadersContext: string,
   hasLeader: boolean,
-  cvUrl?: string | null
+  cvUrl?: string | null,
+  entrevistaTexto?: string | null
 ): Promise<any> {
   const disc = discJson as any;
   const percentages = disc?.percentages ?? {};
@@ -57,12 +58,16 @@ async function analyzeCandidate(
   "pontosFortesDupla": [],
   "riscosRelacionamento": [],`;
 
+  const entrevistaSection = entrevistaTexto?.trim()
+    ? `\nTranscrição da entrevista:\n${entrevistaTexto.trim()}`
+    : "";
+
   const candidateContext = `CANDIDATO:
 - Nome: ${candidateName}
 - Perfil DISC dominante: ${dominant}
 - Percentuais DISC: D=${percentages.D ?? 0}% | I=${percentages.I ?? 0}% | S=${percentages.S ?? 0}% | C=${percentages.C ?? 0}%
 ${ennLine}
-${mbtiLine}
+${mbtiLine}${entrevistaSection}
 
 ${jobContext}
 ${leadersContext}
@@ -254,7 +259,8 @@ VAGA:
           jobContext,
           leadersContext,
           !!leadersContext,
-          c.cvUrl ?? null
+          c.cvUrl ?? null,
+          c.entrevistaTexto ?? null
         ).catch(() => null);
       })
     );
