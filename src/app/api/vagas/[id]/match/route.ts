@@ -4,7 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { anthropic } from "@/lib/anthropic";
 
-export const maxDuration = 25;
+export const maxDuration = 10;
 
 const MOTIVO_LABELS: Record<string, string> = {
   crescimento: "Crescimento da equipe",
@@ -101,22 +101,32 @@ ${leaderFields}
             data: cvUrl!.replace("data:application/pdf;base64,", ""),
           },
         },
-        {
-          type: "text",
-          text:
-            candidateContext +
-            "\n\nO candidato enviou um currículo em PDF (documento acima). Use as informações do currículo para enriquecer sua análise de fit cultural, pontos fortes e pontos de atenção.",
-        },
+        { type: "text", text: candidateContext + "\n\nUse o currículo em PDF acima para enriquecer a análise." },
       ]
     : candidateContext;
 
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1500,
-    system:
-      "Você é um especialista sênior em RH e psicologia organizacional no mercado brasileiro. Responda EXCLUSIVAMENTE com JSON válido. Não use markdown, não use backticks, não escreva nenhum texto fora do objeto JSON.",
-    messages: [{ role: "user", content: userContent }],
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 9000);
+
+  let message: Awaited<ReturnType<typeof anthropic.messages.create>>;
+  try {
+    message = await anthropic.messages.create(
+      {
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 800,
+        system: "Especialista em RH. Responda APENAS com JSON válido, sem markdown.",
+        messages: [{ role: "user", content: userContent }],
+      },
+      { signal: controller.signal }
+    );
+  } catch (err: any) {
+    if (controller.signal.aborted || err?.name === "AbortError") {
+      throw new Error("timeout");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const block = message.content[0];
   if (block.type !== "text") throw new Error("Resposta inválida da IA");
@@ -247,52 +257,23 @@ VAGA:
     }
   }
 
-  let results: any[];
-  try {
-    if (withDisc.length > 3) {
-      // Sequential to avoid Vercel timeout on hobby plan
-      results = [];
-      for (const c of withDisc) {
-        const pr = prMap.get(c.id);
-        const result = await analyzeCandidate(
-          c.id,
-          c.nome,
-          pr.discJson,
-          pr.enneagramJson,
-          pr.mbtiJson,
-          jobContext,
-          leadersContext,
-          !!leadersContext,
-          c.cvUrl ?? null,
-          c.entrevistaTexto ?? null
-        ).catch(() => null);
-        if (result) results.push(result);
-      }
-    } else {
-      results = await Promise.all(
-        withDisc.map((c) => {
-          const pr = prMap.get(c.id);
-          return analyzeCandidate(
-            c.id,
-            c.nome,
-            pr.discJson,
-            pr.enneagramJson,
-            pr.mbtiJson,
-            jobContext,
-            leadersContext,
-            !!leadersContext,
-            c.cvUrl ?? null,
-            c.entrevistaTexto ?? null
-          ).catch(() => null);
-        })
-      );
-      results = results.filter(Boolean);
-    }
-  } catch {
-    return NextResponse.json(
-      { error: "Erro ao processar análise com IA. Tente novamente." },
-      { status: 500 }
-    );
+  // Always sequential to stay within Vercel 10s limit
+  const results: any[] = [];
+  for (const c of withDisc) {
+    const pr = prMap.get(c.id);
+    const result = await analyzeCandidate(
+      c.id,
+      c.nome,
+      pr.discJson,
+      pr.enneagramJson,
+      pr.mbtiJson,
+      jobContext,
+      leadersContext,
+      !!leadersContext,
+      c.cvUrl ?? null,
+      c.entrevistaTexto ?? null
+    ).catch(() => null);
+    if (result) results.push(result);
   }
 
   if (results.length === 0) {
