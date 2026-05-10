@@ -33,16 +33,16 @@ O Contratai resolve um problema real de empresas em crescimento: contratar bem e
 
 **Diferenciais:**
 - Motor próprio de 3 testes psicométricos (DISC + Eneagrama + 16 Personalidades) — zero custo recorrente por aplicação
-- IA que analisa candidatos com contexto real da empresa, da vaga e do líder direto
+- IA que analisa candidatos com contexto real da empresa, da vaga, do líder direto e da entrevista
 - Match multidimensional: candidato × vaga × cultura × líder
-- Portal white-label para candidatos sem criar conta
+- Portal white-label para candidatos com perguntas de triagem antes dos testes
 - Chat assistente com Markdown renderizado e histórico por vaga
 - PDF automático com resultados enviado por e-mail ao candidato
 
 **Usuários:**
 - **RH / Gestor** — cadastra empresa, colaboradores e vagas, gerencia candidatos, visualiza relatórios
 - **Colaborador** — faz os testes para compor o perfil de líder
-- **Candidato** — acessa via link único, realiza os 3 testes, recebe PDF com resultados
+- **Candidato** — acessa via link único, responde triagem, realiza os 3 testes, recebe PDF com resultados
 
 ---
 
@@ -79,7 +79,7 @@ Next.js App Router (frontend + backend juntos)
       PostgreSQL (Supabase)
 
 Serviços externos:
-  ├── Anthropic API (Haiku 4.5) → JD, match, chat, desafios
+  ├── Anthropic API (Haiku 4.5) → JD, match, chat, desafios, triagem
   ├── Resend → e-mails transacionais + PDF anexado
   └── ViaCEP → auto-preenchimento de endereço
 ```
@@ -121,10 +121,11 @@ src/
 │   │           ├── chat/route.ts                # POST chat com streaming
 │   │           ├── desafio/route.ts             # POST desafio técnico por IA
 │   │           ├── gerar-jd/route.ts            # POST gera JD por IA
+│   │           ├── gerar-perguntas/route.ts     # POST gera perguntas de triagem
 │   │           └── match/route.ts               # POST match ranqueado por IA
 │   │
 │   ├── auth/login/                              # Tela de login com Google
-│   ├── candidatura/[vagaId]/                    # Página pública de candidatura
+│   ├── candidatura/[vagaId]/                    # Página pública — triagem + candidatura
 │   ├── colaboradores/                           # Gestão de colaboradores
 │   ├── dashboard/                               # Dashboard com vagas e métricas
 │   ├── onboarding/                              # Wizard 4 etapas
@@ -138,17 +139,17 @@ src/
 │   │   ├── DiscTestClient.tsx                   # DISC (28 perguntas)
 │   │   ├── EnneagramClient.tsx                  # Eneagrama (36 perguntas)
 │   │   ├── MBTIClient.tsx                       # 16P (60 perguntas)
-│   │   ├── page.tsx                             # Orquestra os 3 testes
+│   │   ├── page.tsx                             # Triagem + orquestra os 3 testes
 │   │   └── result/page.tsx                      # Resultado + PDF por e-mail
 │   └── vagas/
 │       ├── nova/page.tsx                        # Criar vaga + selecionar líder
 │       └── [id]/
 │           ├── page.tsx                         # Detalhes + candidatos
-│           ├── VagaClient.tsx                   # Interações client-side
+│           ├── VagaClient.tsx                   # Candidatos + currículo + transcrição
 │           ├── editar/page.tsx                  # Editar vaga + trocar líder
 │           └── match/
 │               ├── page.tsx                     # Relatório de match
-│               └── MatchClient.tsx              # UI com cards expansíveis
+│               └── MatchClient.tsx              # Cards com análise completa
 │
 ├── components/ui/
 │   ├── ChatSidebar.tsx                          # Chat com streaming + Markdown
@@ -182,8 +183,9 @@ enderecoJson          nome                responsabilidades
 logoUrl               role                metas, jdGerada
 contextoEmpresa       createdAt           salaryMin/Max
 perfilRitmo                               perfilIdealJson
-valores[]                                 liderId → OrganogramaNode
-contextoJson                              status
+valores[]                                 (perguntas de triagem)
+contextoJson                              liderId
+                                          status
 
 Candidate             TestLink            PersonalityResult
 ──────────────        ────────────        ─────────────────
@@ -193,9 +195,10 @@ companyId             token (único)       subjectId (String)
 nome                  candidateId         subjectType
 email                 expiresAt           (candidate/employee)
 linkedinUrl           completedAt         discJson
-testLinkToken         type                enneagramJson
-                      (candidate/         mbtiJson
-                       employee)          createdAt
+cvUrl                 type                enneagramJson
+respostasJson         (candidate/         mbtiJson
+entrevistaTexto        employee)          createdAt
+testLinkToken
 
 MatchReport           ChatMessage         OrganogramaNode
 ────────────          ────────────        ───────────────
@@ -217,46 +220,48 @@ Login com Google OAuth via NextAuth v4. Strategy JWT com `companyId` no token. T
 
 ### 2 — Onboarding (4 etapas)
 - **Etapa 1:** dados cadastrais com ViaCEP automático
-- **Etapa 2:** organograma — cadastro de colaboradores com cargo e departamento
+- **Etapa 2:** organograma — cadastro de colaboradores
 - **Etapa 3:** geração de links de teste para colaboradores
-- **Etapa 4:** contexto e cultura que alimenta a IA para match preciso
+- **Etapa 4:** contexto e cultura que alimenta a IA
 
 ### 3 — Gestão de Colaboradores
-Página dedicada para adicionar, listar e excluir colaboradores após o onboarding. Geração de links individuais. Colaboradores com teste concluído ficam disponíveis como líderes nas vagas.
+Página dedicada para adicionar, listar e excluir colaboradores. Geração de links individuais. Colaboradores com teste concluído ficam disponíveis como líderes nas vagas.
 
 ### 4 — Motor DISC
-28 blocos de 4 palavras. Candidato escolhe mais e menos. Calcula D/I/S/C em percentual. Base open source — zero custo por aplicação.
+28 blocos de 4 palavras. Candidato escolhe mais e menos. Calcula D/I/S/C em percentual. Base open source — zero custo.
 
 ### 5 — Motor Eneagrama
 36 afirmações com escala 1-5. Identifica tipo 1-9 e asa. Base MIT reescrita em TypeScript.
 
 ### 6 — Motor 16 Personalidades (MBTI via IPIP)
-60 afirmações com escala 1-5. Mede E/I, S/N, T/F, J/P. Gera tipo de 4 letras (ex: INTJ, ENFP). Base IPIP domínio público — uso comercial irrestrito.
+60 afirmações com escala 1-5. Mede E/I, S/N, T/F, J/P. Gera tipo de 4 letras. Base IPIP domínio público.
 
 ### 7 — Portal White-Label do Candidato
-Link único sem criar conta. Logo da empresa. LGPD + SATEPSI. Três testes em sequência com bolinhas de progresso coloridas. PDF com resultados enviado por e-mail ao concluir.
+Link único sem criar conta. Logo da empresa. LGPD + SATEPSI. Perguntas de triagem antes dos testes. Três testes em sequência. PDF enviado por e-mail ao concluir.
 
-### 8 — Gestão de Vagas
-Dashboard com vagas reais. Fluxo A (candidatura pública) e Fluxo B (manual). Seleção de líder direto na criação e edição. Excluir com cascade.
+### 8 — Candidatura Pública (Fluxo A)
+Página pública onde candidato preenche: nome, email, LinkedIn (opcional), currículo PDF (opcional). Responde perguntas de triagem geradas pela IA. Sistema cria Candidate + TestLink automaticamente.
 
-### 9 — IA: Geração de JD
-JD completa, estimativa salarial com breakdown de encargos brasileiros (INSS, FGTS, férias, 13º, VT, plano de saúde), perfil psicométrico ideal e perguntas de triagem.
+### 9 — Gestão de Vagas
+Dashboard com vagas reais. Fluxo A e B. Seleção de líder direto. Upload de currículo PDF. Transcrição de entrevista. Excluir com cascade.
 
-### 10 — IA: Match Ranqueado com Líder
-Score 0-100 por candidato com DISC + Eneagrama + MBTI em paralelo (Promise.all). Inclui perfil do líder no contexto. Gera: pontos fortes, pontos de atenção, fit cultural, compatibilidade com líder, como delegar, como dar feedback, perguntas para entrevista.
+### 10 — IA: Geração de JD
+JD completa, salário com breakdown (INSS, FGTS, férias, 13º, VT, plano de saúde), perfil psicométrico ideal e 5-8 perguntas de triagem específicas para a vaga.
 
-### 11 — IA: Desafio Técnico
-Desafio prático personalizado com tarefas, entregáveis, critérios e dica para o avaliador baseada no perfil psicométrico do candidato.
+### 11 — IA: Match Ranqueado com Líder
+Score 0-100 com DISC + Eneagrama + MBTI + currículo + transcrição de entrevista + perfil do líder em paralelo. Gera: pontos fortes, pontos de atenção, fit cultural, compatibilidade com líder, como delegar, como dar feedback, perguntas para entrevista.
 
-### 12 — Chat Assistente de RH
-Sidebar colapsável com streaming real (ReadableStream). Markdown renderizado com react-markdown. Contexto completo injetado. Histórico por vaga salvo no banco.
+### 12 — IA: Desafio Técnico
+Desafio prático personalizado com tarefas, entregáveis, critérios e dica para o avaliador.
 
-### 13 — E-mails Automáticos + PDF
+### 13 — Chat Assistente de RH
+Sidebar com streaming real. Markdown renderizado. Contexto completo. Histórico por vaga.
+
+### 14 — E-mails Automáticos + PDF
 - E-mail de boas-vindas após cadastro
 - E-mail com link do teste para candidato
-- E-mail com PDF dos resultados ao concluir os 3 testes
+- E-mail com PDF dos 3 resultados ao concluir
 - Notificação para RH quando candidato conclui
-- Domínio verificado: `noreply@pirulitodocorte.xyz`
 
 ---
 
@@ -264,22 +269,22 @@ Sidebar colapsável com streaming real (ReadableStream). Markdown renderizado co
 
 ### Fluxo A — Candidatura pública
 ```
-RH cria vaga + seleciona líder direto
+RH cria vaga com IA + seleciona líder
 → Copia link público (/candidatura/[vagaId])
-→ Candidato preenche nome + email
-→ Sistema cria Candidate + TestLink automaticamente
-→ Candidato faz DISC → Eneagrama → 16P
-→ Candidato recebe PDF por e-mail
-→ RH é notificado → executa match com IA
+→ Candidato preenche nome, email, LinkedIn, currículo
+→ Responde perguntas de triagem geradas pela IA
+→ Faz DISC → Eneagrama → 16P
+→ Recebe PDF por e-mail
+→ RH executa match com IA
 ```
 
 ### Fluxo B — Candidatos manuais
 ```
 RH cria vaga + seleciona líder
-→ Adiciona candidatos manualmente
+→ Adiciona candidatos com currículo e transcrição de entrevista
 → Sistema cria TestLink automaticamente
 → RH envia link por e-mail
-→ Candidato faz DISC → Eneagrama → 16P
+→ Candidato responde triagem + faz DISC → Eneagrama → 16P
 → RH executa match → usa chat para tirar dúvidas
 ```
 
@@ -288,7 +293,7 @@ RH cria vaga + seleciona líder
 RH cadastra colaborador em /colaboradores
 → Gera link de teste individual
 → Colaborador faz DISC → Eneagrama → 16P
-→ Perfil disponível para seleção como líder nas vagas
+→ Perfil disponível como líder nas vagas
 → IA usa perfil do líder no match com candidatos
 ```
 
@@ -326,8 +331,8 @@ Acesse `http://localhost:3000`
 
 ```env
 # Banco de dados (Supabase)
-# Local: usar Direct Connection (porta 5432)
-# Produção: usar Transaction Pooler (porta 6543) com ?pgbouncer=true&connection_limit=1
+# Local: Direct Connection (porta 5432)
+# Produção: Transaction Pooler (porta 6543) com ?pgbouncer=true&connection_limit=1
 DATABASE_URL="postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres"
 DIRECT_URL="postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres"
 
@@ -357,32 +362,32 @@ vercel --prod
 ```
 
 **Configurações obrigatórias:**
-1. Adicionar todas as variáveis de ambiente no painel da Vercel
-2. `NEXTAUTH_URL` → URL de produção (ex: `https://contratai-five.vercel.app`)
+1. Todas as variáveis de ambiente no painel da Vercel
+2. `NEXTAUTH_URL` → URL de produção
 3. `DATABASE_URL` → Transaction Pooler porta 6543 com `?pgbouncer=true&connection_limit=1`
-4. Google Cloud Console → adicionar URL de produção nas origens e callbacks autorizados
+4. Google Cloud Console → URL de produção nas origens e callbacks autorizados
 
 ---
 
 ## Decisões Técnicas
 
-**Next.js App Router** — full-stack em um projeto. Server Components acessam o banco diretamente sem API intermediária.
+**Next.js App Router** — full-stack em um projeto. Server Components acessam o banco diretamente.
 
-**JWT strategy** — token com `companyId` no cookie. Sem consulta ao banco a cada request. Mais rápido e escalável.
+**JWT strategy** — token com `companyId` no cookie. Sem consulta ao banco a cada request.
 
-**subjectId como String** — PersonalityResult usa `subjectId` como campo String sem FK, permitindo referenciar tanto `Candidate.id` quanto `OrganogramaNode.id`. O campo `subjectType` ("candidate" ou "employee") distingue o tipo.
+**subjectId como String** — PersonalityResult usa `subjectId` sem FK, permitindo referenciar tanto `Candidate.id` quanto `OrganogramaNode.id`. O campo `subjectType` distingue o tipo.
 
-**Open source para testes** — DISC (GitHub), Eneagrama (MIT), 16P via IPIP (domínio público). Zero custo recorrente. Propriedade total dos dados.
+**Open source para testes** — DISC (GitHub), Eneagrama (MIT), 16P via IPIP (domínio público). Zero custo recorrente.
 
-**Claude Haiku 4.5** — modelo mais rápido e econômico da Anthropic. Ideal para múltiplas análises em paralelo.
+**Claude Haiku 4.5** — modelo rápido e econômico. Ideal para análises em paralelo.
 
 **Promise.all no match** — candidatos processados em paralelo. Com 5 candidatos, o tempo é o mesmo que para 1.
 
-**Transaction Pooler** — resolve o limite de 15 conexões do Supabase gratuito em ambiente serverless da Vercel.
+**Transaction Pooler** — resolve o limite de 15 conexões do Supabase gratuito em ambiente serverless.
 
-**Streaming no chat** — ReadableStream + reader.read(). Resposta em tempo real sem timeout.
+**Streaming no chat** — ReadableStream + reader.read(). Resposta em tempo real.
 
-**react-markdown + remark-gfm** — renderiza Markdown das respostas da IA no chat para melhor legibilidade.
+**PDF nativo no Claude** — currículos enviados como base64 são analisados nativamente pela API do Claude, sem necessidade de parser externo.
 
 ---
 
@@ -394,7 +399,6 @@ Os testes disponibilizados nesta plataforma são ferramentas de autoconhecimento
 
 ## Próximos Passos
 
-- [ ] Upload de currículo PDF do candidato na vaga
 - [ ] Organograma drag-and-drop com hierarquia visual
 - [ ] Lembrete por e-mail 24h antes do link expirar
 - [ ] Endpoint de exclusão de dados pessoais (direito ao esquecimento LGPD)
@@ -403,4 +407,5 @@ Os testes disponibilizados nesta plataforma são ferramentas de autoconhecimento
 - [ ] App mobile para candidatos
 - [ ] Integração com LinkedIn API para enriquecimento automático de perfil
 - [ ] Relatório de onboarding do novo colaborador contratado
-- [ ] Plano de desenvolvimento: livros + cursos + escala salarial por candidato selecionado
+- [ ] Resultados de testes manuais (importar DISC de outros sistemas)
+- [ ] Plano de desenvolvimento: livros + cursos + escala salarial por candidato
