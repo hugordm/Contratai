@@ -9,12 +9,12 @@ export default function Navbar() {
 
   return (
     <header className="bg-[#4A5452]">
-      <div className="max-w-6xl mx-auto px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/dashboard" className="font-bold text-[#C4FF57] text-lg">
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4 sm:gap-8 min-w-0">
+          <Link href="/dashboard" className="font-bold text-[#C4FF57] text-lg flex-shrink-0">
             Contratai
           </Link>
-          <nav className="flex items-center gap-6">
+          <nav className="hidden sm:flex items-center gap-6">
             <Link href="/dashboard" className="text-sm text-white/70 hover:text-white transition">
               Dashboard
             </Link>
@@ -23,9 +23,11 @@ export default function Navbar() {
             </Link>
           </nav>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {session?.user?.name && (
-            <span className="text-sm text-white/60">{session.user.name}</span>
+            <span className="hidden sm:inline text-sm text-white/60 truncate max-w-[160px]">
+              {session.user.name}
+            </span>
           )}
           <SignOutButton />
         </div>

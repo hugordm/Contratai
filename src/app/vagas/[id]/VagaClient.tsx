@@ -359,11 +359,11 @@ export default function VagaClient({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700 transition">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700 transition mr-auto">
           ← Voltar ao dashboard
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <button
             onClick={() => {
               const link = `${window.location.origin}/candidatura/${jobId}`;
@@ -374,14 +374,14 @@ export default function VagaClient({
             }}
             className="text-xs font-medium border border-gray-200 px-3 py-2 rounded-xl text-gray-600 hover:border-[#4A5452] hover:text-[#4A5452] transition"
           >
-            {copiedLink ? "✅ Link copiado!" : "📋 Copiar link de candidatura"}
+            {copiedLink ? "✅ Copiado!" : "📋 Link candidatura"}
           </button>
           {discCompletedCount > 0 && (
             <Link
               href={`/vagas/${jobId}/match`}
               className="bg-[#4A5452] text-white font-semibold px-4 py-2 rounded-xl text-sm hover:bg-[#3a4442] transition flex items-center gap-1.5"
             >
-              🤖 Ver Match com IA
+              🤖 Match IA
               <span className="bg-[#C4FF57] text-[#4A5452] text-xs font-bold rounded-full px-1.5 py-0.5">
                 {discCompletedCount}
               </span>
@@ -391,11 +391,11 @@ export default function VagaClient({
             href={`/vagas/${jobId}/editar`}
             className="text-sm text-gray-600 hover:text-[#4A5452] hover:bg-[#F5F7F0] px-3 py-2 rounded-xl transition border border-gray-200"
           >
-            ✏️ Editar vaga
+            ✏️ Editar
           </Link>
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-xl transition"
+            className="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-xl transition border border-red-200"
           >
             Excluir vaga
           </button>
