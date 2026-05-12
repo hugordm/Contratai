@@ -27,7 +27,12 @@ export default function Home() {
       {/* Nav */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <span className="font-bold text-[#4A5452] text-xl tracking-tight">
+          <span className="font-bold text-[#4A5452] text-xl tracking-tight flex items-center gap-2">
+            <img
+              src="https://i.postimg.cc/vDpmhs5m/Captura-de-Tela-2026-05-05-as-14-20-29.png"
+              alt="Enviagora"
+              className="h-10 w-auto"
+            />
             Contratai
           </span>
           <div className="flex items-center gap-3">

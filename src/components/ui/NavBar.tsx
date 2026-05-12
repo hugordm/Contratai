@@ -11,7 +11,12 @@ export default function Navbar() {
     <header className="bg-[#4A5452]">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-4 sm:gap-8 min-w-0">
-          <Link href="/dashboard" className="font-bold text-[#C4FF57] text-lg flex-shrink-0">
+          <Link href="/dashboard" className="font-bold text-[#C4FF57] text-lg flex-shrink-0 flex items-center gap-2">
+            <img
+              src="https://i.postimg.cc/WFYdTqDB/Captura-de-Tela-2026-05-05-as-14-20-44.png"
+              alt="logo"
+              className="h-6 w-auto"
+            />
             Contratai
           </Link>
           <nav className="hidden sm:flex items-center gap-6">
