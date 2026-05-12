@@ -26,8 +26,8 @@ export default function Home() {
     <main className="min-h-screen flex flex-col bg-[#F5F7F0]">
       {/* Nav */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <span className="font-bold text-[#4A5452] text-xl tracking-tight flex items-center gap-2">
+        <div className="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-y-3 max-[425px]:justify-center">
+          <span className="font-bold text-[#4A5452] text-xl tracking-tight flex items-center gap-2 max-[425px]:w-full max-[425px]:justify-center">
             <img
               src="https://i.postimg.cc/vDpmhs5m/Captura-de-Tela-2026-05-05-as-14-20-29.png"
               alt="Enviagora"
