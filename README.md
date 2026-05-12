@@ -35,14 +35,14 @@ O Contratai resolve um problema real de empresas em crescimento: contratar bem e
 - Motor próprio de 3 testes psicométricos (DISC + Eneagrama + 16 Personalidades) — zero custo recorrente por aplicação
 - IA que analisa candidatos com contexto real da empresa, da vaga, do líder direto e da entrevista
 - Match multidimensional: candidato × vaga × cultura × líder
-- Portal white-label para candidatos com perguntas de triagem antes dos testes
+- Portal white-label com perguntas de triagem antes dos testes
 - Chat assistente com Markdown renderizado e histórico por vaga
 - PDF automático com resultados enviado por e-mail ao candidato
 
 **Usuários:**
 - **RH / Gestor** — cadastra empresa, colaboradores e vagas, gerencia candidatos, visualiza relatórios
 - **Colaborador** — faz os testes para compor o perfil de líder
-- **Candidato** — acessa via link único, responde triagem, realiza os 3 testes, recebe PDF com resultados
+- **Candidato** — acessa via link único, responde triagem, realiza os 3 testes, recebe PDF
 
 ---
 
@@ -117,7 +117,7 @@ src/
 │   │       └── [id]/
 │   │           ├── route.ts                     # PATCH edita / DELETE exclui
 │   │           ├── candidatos/route.ts          # POST adiciona + cria TestLink
-│   │           ├── candidatos/[id]/route.ts     # DELETE exclui candidato
+│   │           ├── candidatos/[candidateId]/route.ts  # DELETE + PATCH candidato
 │   │           ├── chat/route.ts                # POST chat com streaming
 │   │           ├── desafio/route.ts             # POST desafio técnico por IA
 │   │           ├── gerar-jd/route.ts            # POST gera JD por IA
@@ -133,12 +133,14 @@ src/
 │   │       ├── StepOne.tsx                      # Dados + ViaCEP
 │   │       ├── StepOrgChart.tsx                 # Organograma
 │   │       ├── StepCollaboratorTests.tsx        # Links para colaboradores
+│   │       ├── StepTwo.tsx                      # Endereço
 │   │       └── StepThree.tsx                    # Contexto e cultura
 │   ├── privacidade/                             # Política LGPD
 │   ├── test/[token]/                            # Portal público do candidato
 │   │   ├── DiscTestClient.tsx                   # DISC (28 perguntas)
 │   │   ├── EnneagramClient.tsx                  # Eneagrama (36 perguntas)
 │   │   ├── MBTIClient.tsx                       # 16P (60 perguntas)
+│   │   ├── TriagemClient.tsx                    # Perguntas de triagem antes dos testes
 │   │   ├── page.tsx                             # Triagem + orquestra os 3 testes
 │   │   └── result/page.tsx                      # Resultado + PDF por e-mail
 │   └── vagas/
@@ -152,9 +154,10 @@ src/
 │               └── MatchClient.tsx              # Cards com análise completa
 │
 ├── components/ui/
+│   ├── button.tsx                               # Componente shadcn/ui
 │   ├── ChatSidebar.tsx                          # Chat com streaming + Markdown
-│   ├── NavBar.tsx                               # Navegação global
-│   ├── Provider.tsx                             # SessionProvider
+│   ├── NavBar.tsx                               # Navegação global responsiva
+│   ├── Provider.tsx                             # SessionProvider do NextAuth
 │   └── SignOutButton.tsx                        # Botão logout
 │
 └── lib/
@@ -166,7 +169,8 @@ src/
     ├── mbti/scoring.ts                          # Scoring E/I, S/N, T/F, J/P
     ├── pdf/resultadoPDF.tsx                     # PDF com os 3 resultados
     ├── prisma.ts                                # Conexão com banco
-    └── resend.ts                                # Client e-mail
+    ├── resend.ts                                # Client e-mail
+    └── utils.ts                                 # Utilitários (cn)
 ```
 
 ---
@@ -240,16 +244,16 @@ Página dedicada para adicionar, listar e excluir colaboradores. Geração de li
 Link único sem criar conta. Logo da empresa. LGPD + SATEPSI. Perguntas de triagem antes dos testes. Três testes em sequência. PDF enviado por e-mail ao concluir.
 
 ### 8 — Candidatura Pública (Fluxo A)
-Página pública onde candidato preenche: nome, email, LinkedIn (opcional), currículo PDF (opcional). Responde perguntas de triagem geradas pela IA. Sistema cria Candidate + TestLink automaticamente.
+Página pública com nome, email, LinkedIn e currículo PDF opcionais. Responde perguntas de triagem geradas pela IA. Sistema cria Candidate + TestLink automaticamente.
 
 ### 9 — Gestão de Vagas
-Dashboard com vagas reais. Fluxo A e B. Seleção de líder direto. Upload de currículo PDF. Transcrição de entrevista. Excluir com cascade.
+Dashboard com vagas reais. Fluxo A e B. Seleção de líder direto. Upload de currículo PDF. Transcrição de entrevista. Editar candidato. Excluir com cascade.
 
 ### 10 — IA: Geração de JD
-JD completa, salário com breakdown (INSS, FGTS, férias, 13º, VT, plano de saúde), perfil psicométrico ideal e 5-8 perguntas de triagem específicas para a vaga.
+JD completa, salário com breakdown (INSS, FGTS, férias, 13º, VT, plano de saúde), perfil psicométrico ideal e 5-8 perguntas de triagem.
 
 ### 11 — IA: Match Ranqueado com Líder
-Score 0-100 com DISC + Eneagrama + MBTI + currículo + transcrição de entrevista + perfil do líder em paralelo. Gera: pontos fortes, pontos de atenção, fit cultural, compatibilidade com líder, como delegar, como dar feedback, perguntas para entrevista.
+Score 0-100 com DISC + Eneagrama + MBTI + currículo + transcrição + perfil do líder em paralelo. Pontos fortes, pontos de atenção, fit cultural, compatibilidade com líder, como delegar, como dar feedback, perguntas para entrevista.
 
 ### 12 — IA: Desafio Técnico
 Desafio prático personalizado com tarefas, entregáveis, critérios e dica para o avaliador.
@@ -281,7 +285,7 @@ RH cria vaga com IA + seleciona líder
 ### Fluxo B — Candidatos manuais
 ```
 RH cria vaga + seleciona líder
-→ Adiciona candidatos com currículo e transcrição de entrevista
+→ Adiciona candidatos com currículo e transcrição
 → Sistema cria TestLink automaticamente
 → RH envia link por e-mail
 → Candidato responde triagem + faz DISC → Eneagrama → 16P
@@ -363,7 +367,7 @@ vercel --prod
 
 **Configurações obrigatórias:**
 1. Todas as variáveis de ambiente no painel da Vercel
-2. `NEXTAUTH_URL` → URL de produção
+2. `NEXTAUTH_URL` → URL de produção sem barra no final
 3. `DATABASE_URL` → Transaction Pooler porta 6543 com `?pgbouncer=true&connection_limit=1`
 4. Google Cloud Console → URL de produção nas origens e callbacks autorizados
 
@@ -379,15 +383,15 @@ vercel --prod
 
 **Open source para testes** — DISC (GitHub), Eneagrama (MIT), 16P via IPIP (domínio público). Zero custo recorrente.
 
-**Claude Haiku 4.5** — modelo rápido e econômico. Ideal para análises em paralelo.
+**Claude Haiku 4.5** — modelo rápido e econômico. Ideal para análises em paralelo com limite de tokens controlado.
 
-**Promise.all no match** — candidatos processados em paralelo. Com 5 candidatos, o tempo é o mesmo que para 1.
+**maxDuration = 60** — configurado na API de match para evitar timeout na Vercel plano Hobby.
 
 **Transaction Pooler** — resolve o limite de 15 conexões do Supabase gratuito em ambiente serverless.
 
 **Streaming no chat** — ReadableStream + reader.read(). Resposta em tempo real.
 
-**PDF nativo no Claude** — currículos enviados como base64 são analisados nativamente pela API do Claude, sem necessidade de parser externo.
+**PDF nativo no Claude** — currículos em base64 são analisados nativamente pela API sem parser externo.
 
 ---
 
@@ -401,11 +405,11 @@ Os testes disponibilizados nesta plataforma são ferramentas de autoconhecimento
 
 - [ ] Organograma drag-and-drop com hierarquia visual
 - [ ] Lembrete por e-mail 24h antes do link expirar
+- [ ] Resultados de testes manuais (importar DISC de outros sistemas)
 - [ ] Endpoint de exclusão de dados pessoais (direito ao esquecimento LGPD)
 - [ ] 2FA para admins
 - [ ] Dashboard analytics: tempo médio de contratação, taxa de conversão
 - [ ] App mobile para candidatos
 - [ ] Integração com LinkedIn API para enriquecimento automático de perfil
 - [ ] Relatório de onboarding do novo colaborador contratado
-- [ ] Resultados de testes manuais (importar DISC de outros sistemas)
 - [ ] Plano de desenvolvimento: livros + cursos + escala salarial por candidato
